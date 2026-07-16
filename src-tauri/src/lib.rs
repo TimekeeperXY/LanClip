@@ -11,11 +11,12 @@ use model::{AppSnapshot, PairingSession, SystemStatus};
 use network::SharedState;
 use rand::Rng;
 use state::{now_millis, AppState};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-    Manager, State,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Manager, RunEvent, State, WindowEvent,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tokio::sync::RwLock;
@@ -110,13 +111,18 @@ fn repair_firewall() -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let quitting = Arc::new(AtomicBool::new(false));
+    let quitting_from_menu = quitting.clone();
+    let quitting_from_window = quitting.clone();
+    let quitting_from_app = quitting.clone();
+
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec!["--background"]),
         ))
-        .setup(|app| {
+        .setup(move |app| {
             let config_path = app.path().app_config_dir()?.join("config.json");
             let state = Arc::new(RwLock::new(
                 AppState::load(config_path)
@@ -129,20 +135,45 @@ pub fn run() {
             app.manage(state);
 
             let open = MenuItem::with_id(app, "open", "打开 LanClip", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "退出 LanClip", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
+            let tray_quitting = quitting_from_menu.clone();
             TrayIconBuilder::new()
                 .menu(&menu)
+                .show_menu_on_left_click(false)
                 .tooltip("LanClip 局域网剪贴板")
-                .on_menu_event(|app, event| match event.id.as_ref() {
+                .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
                         }
                     }
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        tray_quitting.store(true, Ordering::SeqCst);
+                        app.exit(0);
+                    }
                     _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    let should_open = matches!(
+                        event,
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } | TrayIconEvent::DoubleClick {
+                            button: MouseButton::Left,
+                            ..
+                        }
+                    );
+                    if should_open {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.unminimize();
+                            let _ = window.set_focus();
+                        }
+                    }
                 })
                 .build(app)?;
             if std::env::args().any(|argument| argument == "--background") {
@@ -151,6 +182,15 @@ pub fn run() {
                 }
             }
             Ok(())
+        })
+        .on_window_event(move |window, event| {
+            if window.label() != "main" || quitting_from_window.load(Ordering::SeqCst) {
+                return;
+            }
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
@@ -165,6 +205,14 @@ pub fn run() {
             set_autostart,
             repair_firewall,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running LanClip");
+        .build(tauri::generate_context!())
+        .expect("error while building LanClip");
+
+    app.run(move |_app, event| {
+        if let RunEvent::ExitRequested { api, .. } = event {
+            if !quitting_from_app.load(Ordering::SeqCst) {
+                api.prevent_exit();
+            }
+        }
+    });
 }
