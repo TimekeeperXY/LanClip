@@ -87,6 +87,7 @@ async fn clear_history(state: State<'_, SharedState>) -> Result<(), String> {
 fn get_system_status(app: tauri::AppHandle) -> Result<SystemStatus, String> {
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(SystemStatus {
+        platform: current_platform().into(),
         autostart_enabled: app.autolaunch().is_enabled().map_err(|e| e.to_string())?,
         firewall_ready: system::firewall_ready(&executable),
         secure_storage: secrets::is_available(),
@@ -107,6 +108,28 @@ fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
 fn repair_firewall() -> Result<(), String> {
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     system::request_firewall_access(&executable)
+}
+
+fn current_platform() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "unsupported"
+    }
+}
+
+fn reveal_main_window(app: &tauri::AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -144,10 +167,7 @@ pub fn run() {
                 .tooltip("LanClip 局域网剪贴板")
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        reveal_main_window(app);
                     }
                     "quit" => {
                         tray_quitting.store(true, Ordering::SeqCst);
@@ -168,17 +188,17 @@ pub fn run() {
                         }
                     );
                     if should_open {
-                        if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.unminimize();
-                            let _ = window.set_focus();
-                        }
+                        reveal_main_window(tray.app_handle());
                     }
                 })
                 .build(app)?;
             if std::env::args().any(|argument| argument == "--background") {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.hide();
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
                 }
             }
             Ok(())
@@ -190,6 +210,12 @@ pub fn run() {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = window
+                        .app_handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![

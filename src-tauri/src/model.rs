@@ -174,6 +174,7 @@ pub struct AppSnapshot {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemStatus {
+    pub platform: String,
     pub autostart_enabled: bool,
     pub firewall_ready: bool,
     pub secure_storage: bool,

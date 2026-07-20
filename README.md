@@ -33,12 +33,13 @@ LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的�
 - Windows 系统托盘入口
 - 关闭主窗口时继续驻留系统托盘，只有托盘菜单“退出 LanClip”才结束同步服务
 - 设置页可一键开启或关闭开机自启，登录系统后默认静默驻留托盘
+- macOS 关闭窗口后继续驻留菜单栏，开机自启后默认后台运行
 
 ## 跨平台验证状态
 
 已完成 Windows ↔ macOS 真机验证：两端可互相发现、配对、保持在线，并完成文字、截图、图片的双向同步。已验证 macOS 原生截图快捷键、`screencapture -c`、浏览器/预览复制图片，以及 Windows PixPin、Snipaste、微信、浏览器复制图片到 Mac。
 
-仍在推进：macOS 菜单栏常驻体验、macOS 登录启动、Intel Mac 补充验证、macOS 打包签名与公证。
+仍在推进：Intel Mac 补充验证、macOS 打包签名与公证、Mac-Mac 交叉测试。
 
 ## 本地开发
 
