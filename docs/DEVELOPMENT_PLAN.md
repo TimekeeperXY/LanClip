@@ -53,7 +53,7 @@
 - [ ] 在 Intel Mac 上补充验证
 - [x] 加入 macOS 菜单栏常驻、关闭窗口隐藏与登录启动基础支持
 - [x] 真机验证 macOS 菜单栏重新打开、菜单栏退出与重启后后台自启
-- [x] 为发布流程加入 macOS DMG 与 `.app` zip 构建任务
+- [x] 为发布流程加入 macOS DMG 构建任务
 - [ ] 使用 Keychain 保存可信设备密钥
 - [ ] 完成 macOS 权限说明、公证与签名
 - [ ] Windows ↔ macOS、macOS ↔ macOS 交叉测试

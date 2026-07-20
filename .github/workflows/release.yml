@@ -62,8 +62,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p artifacts
+          find src-tauri/target/release/bundle -maxdepth 3 -type f -print
           cp src-tauri/target/release/bundle/dmg/*.dmg artifacts/
-          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/*.app artifacts/LanClip-macos-app.zip
 
       - uses: actions/upload-artifact@v5
         with:
@@ -83,4 +83,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          gh release create "$RELEASE_TAG" release-artifacts/**/* --generate-notes --title "LanClip $RELEASE_TAG"
+          mapfile -t files < <(find release-artifacts -type f | sort)
+          gh release create "$RELEASE_TAG" "${files[@]}" --generate-notes --title "LanClip $RELEASE_TAG"

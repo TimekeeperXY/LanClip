@@ -1,5 +1,9 @@
-use std::{path::Path, process::Command};
+use std::path::Path;
 
+#[cfg(windows)]
+use std::process::Command;
+
+#[cfg(windows)]
 const FIREWALL_RULE: &str = "LanClip Clipboard Sync";
 
 pub fn firewall_ready(executable: &Path) -> bool {
@@ -84,6 +88,7 @@ fn powershell_output(script: &str) -> Option<String> {
         .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+#[cfg(windows)]
 fn ps_quote(value: &str) -> String {
     value.replace('\'', "''")
 }
