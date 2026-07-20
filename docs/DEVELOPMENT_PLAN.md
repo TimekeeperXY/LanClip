@@ -42,11 +42,15 @@
 
 ## 第三阶段：macOS
 
-- 在 Intel 与 Apple Silicon 上验证现有 `arboard` 适配
-- 加入菜单栏交互和登录启动
-- 使用 Keychain 保存可信设备密钥
-- 完成 macOS 权限说明、公证与签名
-- Windows ↔ macOS、macOS ↔ macOS 交叉测试
+- [x] 将剪贴板层拆成通用接口、Windows 实现与 macOS 实现入口
+- [ ] 在 Intel 与 Apple Silicon 上验证基础 `arboard` 文字剪贴板适配
+- [ ] 跑通 Windows ↔ macOS 双向文字同步
+- [ ] 接入 macOS 图片剪贴板读写，统一转换为 RGBA 传输格式
+- [ ] 验证 macOS 原生截图与常见截图工具复制行为
+- [ ] 加入菜单栏交互和登录启动
+- [ ] 使用 Keychain 保存可信设备密钥
+- [ ] 完成 macOS 权限说明、公证与签名
+- [ ] Windows ↔ macOS、macOS ↔ macOS 交叉测试
 
 验收标准：三种设备组合都能同步 Unicode 文字和常见截图，配对数据和协议保持兼容。
 
