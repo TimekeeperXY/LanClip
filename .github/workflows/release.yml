@@ -1,18 +1,28 @@
-name: Build Windows release
+name: Build desktop release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v0.2.1
+        description: Release tag, for example v0.2.3
         required: true
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-latest
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: windows
+          - os: macos-latest
+            artifact: macos
+
     steps:
       - uses: actions/checkout@v7
 
@@ -26,16 +36,51 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: release-${{ matrix.os }}
 
       - run: npm ci
-      - run: npm run tauri build
+
+      - name: Build Windows bundles
+        if: runner.os == 'Windows'
+        run: npm run tauri build -- --bundles nsis
+
+      - name: Prepare Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe" | Select-Object -First 1
+          $portable = "src-tauri/target/release/lanclip.exe"
+          Copy-Item $installer.FullName "artifacts/$($installer.Name)"
+          Copy-Item $portable "artifacts/lanclip-windows-x64.exe"
+
+      - name: Build macOS bundles
+        if: runner.os == 'macOS'
+        run: npm run tauri build -- --bundles dmg
+
+      - name: Prepare macOS artifacts
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p artifacts
+          cp src-tauri/target/release/bundle/dmg/*.dmg artifacts/
+          ditto -c -k --keepParent src-tauri/target/release/bundle/macos/*.app artifacts/LanClip-macos-app.zip
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: lanclip-${{ matrix.artifact }}
+          path: artifacts/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts
 
       - name: Publish release
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*setup.exe" | Select-Object -First 1
-          $portable = "src-tauri/target/release/lanclip.exe"
-          gh release create $env:RELEASE_TAG $installer.FullName $portable --generate-notes --title "LanClip $env:RELEASE_TAG"
+          gh release create "$RELEASE_TAG" release-artifacts/**/* --generate-notes --title "LanClip $RELEASE_TAG"

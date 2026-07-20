@@ -52,6 +52,8 @@
 - [x] 为 GitHub Actions 增加 macOS 编译与测试护栏
 - [ ] 在 Intel Mac 上补充验证
 - [x] 加入 macOS 菜单栏常驻、关闭窗口隐藏与登录启动基础支持
+- [x] 真机验证 macOS 菜单栏重新打开、菜单栏退出与重启后后台自启
+- [x] 为发布流程加入 macOS DMG 与 `.app` zip 构建任务
 - [ ] 使用 Keychain 保存可信设备密钥
 - [ ] 完成 macOS 权限说明、公证与签名
 - [ ] Windows ↔ macOS、macOS ↔ macOS 交叉测试
@@ -65,7 +67,7 @@
 - Windows → macOS 与 macOS → Windows 的纯文本同步均成功。
 - Windows → macOS 与 macOS → Windows 的截图、图片同步均成功，传输记录缩略图正常显示。
 - macOS 原生截图快捷键、`screencapture -c`、浏览器/预览复制图片，以及 Windows PixPin、Snipaste、微信、浏览器复制图片均已验证成功。
-- macOS 端已接入菜单栏常驻逻辑：关闭窗口后继续同步，菜单栏可重新打开或退出；登录启动使用 LaunchAgent 并以后台模式启动。
+- macOS 端已验证菜单栏常驻逻辑：关闭窗口后继续同步，菜单栏可重新打开或退出；登录启动使用 LaunchAgent 并以后台模式启动。
 
 ## 第四阶段：增强功能
 

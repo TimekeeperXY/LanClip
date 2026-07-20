@@ -39,6 +39,8 @@ LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的�
 
 已完成 Windows ↔ macOS 真机验证：两端可互相发现、配对、保持在线，并完成文字、截图、图片的双向同步。已验证 macOS 原生截图快捷键、`screencapture -c`、浏览器/预览复制图片，以及 Windows PixPin、Snipaste、微信、浏览器复制图片到 Mac。
 
+已完成 macOS 菜单栏常驻与登录启动真机验证：关闭窗口后继续同步，菜单栏可重新打开或退出，重启后可后台自启。
+
 仍在推进：Intel Mac 补充验证、macOS 打包签名与公证、Mac-Mac 交叉测试。
 
 ## 本地开发
@@ -60,19 +62,27 @@ npm run dev
 
 ## 构建安装包
 
-仅生成可直接复制的 EXE：
+Windows 仅生成可直接复制的 EXE：
 
 ```powershell
 npm run tauri -- build --no-bundle
 ```
 
-生成安装包：
+Windows 生成 NSIS 安装包：
 
 ```powershell
-npm run tauri build
+npm run tauri build -- --bundles nsis
 ```
 
-Tauri 会在 `src-tauri/target/release/bundle` 下生成 Windows 安装产物。
+macOS 生成 DMG：
+
+```bash
+npm run tauri build -- --bundles dmg
+```
+
+也可以在 GitHub Actions 手动运行 `Build desktop release`，输入版本 tag 后同时生成 Windows 与 macOS 发布产物。
+
+Tauri 会在 `src-tauri/target/release/bundle` 下生成对应平台的安装产物。
 
 > 不要使用裸 `cargo build --release` 制作分发版本。它不会执行前端生产构建，也可能保留 `devUrl`，导致目标电脑尝试连接 `localhost:1420`。
 
