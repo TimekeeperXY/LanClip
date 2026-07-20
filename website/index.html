@@ -25,6 +25,7 @@
       <nav aria-label="主要导航">
         <a href="#problems">为什么需要</a>
         <a href="#features">功能</a>
+        <a href="#download">下载</a>
         <a href="#open-source">开源</a>
       </nav>
       <a class="nav-action" href="https://github.com/TimekeeperXY/LanClip" data-repo-link>查看源码</a>
@@ -37,7 +38,8 @@
           <h1><span>复制一次，</span><span>两台电脑都能粘贴。</span></h1>
           <p class="hero-intro">文字和截图直接穿过局域网，不再绕路发给自己。</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="https://github.com/TimekeeperXY/LanClip/releases/latest" data-download-link>下载 Windows 版</a>
+            <a class="button button-primary" href="https://github.com/TimekeeperXY/LanClip/releases/download/v0.2.3/LanClip_0.2.3_x64-setup.exe" data-download-link>下载 Windows 版</a>
+            <a class="button button-secondary" href="https://github.com/TimekeeperXY/LanClip/releases/download/v0.2.3/LanClip_0.2.3_aarch64.dmg" data-download-link>下载 Mac 版</a>
             <a class="button button-secondary" href="#features">了解功能</a>
           </div>
         </div>
@@ -146,6 +148,57 @@
             <p>无需保存文件，也无需打开聊天软件。</p>
           </article>
         </div>
+      </section>
+
+      <section class="download-section section-pad" id="download">
+        <div class="download-heading reveal">
+          <span>DOWNLOAD</span>
+          <h2>Windows 和 Mac 都可以开始试用。</h2>
+          <p>当前版本为 v0.2.3。Mac 版已支持 Apple Silicon，适合 M 系列芯片的 Mac mini、MacBook 和 iMac。</p>
+        </div>
+
+        <div class="download-grid">
+          <article class="download-card reveal">
+            <div class="download-card-top">
+              <span class="platform-mark">Win</span>
+              <div>
+                <h3>Windows 安装包</h3>
+                <p>适合日常使用，包含安装向导、系统托盘和开机自启能力。</p>
+              </div>
+            </div>
+            <a class="button button-primary" href="https://github.com/TimekeeperXY/LanClip/releases/download/v0.2.3/LanClip_0.2.3_x64-setup.exe" data-download-link>下载 .exe 安装包</a>
+          </article>
+
+          <article class="download-card download-card-mac reveal">
+            <div class="download-card-top">
+              <span class="platform-mark">Mac</span>
+              <div>
+                <h3>macOS Apple Silicon</h3>
+                <p>适合 M 系列芯片设备。当前版本尚未签名公证，首次打开前需要移除隔离标记。</p>
+              </div>
+            </div>
+            <a class="button button-primary" href="https://github.com/TimekeeperXY/LanClip/releases/download/v0.2.3/LanClip_0.2.3_aarch64.dmg" data-download-link>下载 .dmg</a>
+          </article>
+        </div>
+
+        <div class="mac-install reveal">
+          <div>
+            <span class="install-label">macOS 安装提示</span>
+            <h3>如果提示“已损坏，无法打开”，通常不是文件真的损坏。</h3>
+            <p>当前 DMG 没有 Apple Developer ID 签名与公证。从 GitHub 下载后，macOS 可能会加上隔离标记。信任本项目时，可以在终端执行下面命令后再安装。</p>
+          </div>
+          <div class="command-stack" aria-label="macOS 安装命令">
+            <code>xattr -dr com.apple.quarantine ~/Downloads/LanClip_0.2.3_aarch64.dmg</code>
+            <code>xattr -dr com.apple.quarantine /Applications/LanClip.app</code>
+            <code>open /Applications/LanClip.app</code>
+          </div>
+        </div>
+
+        <p class="download-note reveal">
+          如果你需要 Windows 便携版或历史版本，可以到
+          <a href="https://github.com/TimekeeperXY/LanClip/releases/latest" data-release-link>GitHub Releases</a>
+          查看全部下载文件。
+        </p>
       </section>
 
       <section class="open-section section-pad" id="open-source">

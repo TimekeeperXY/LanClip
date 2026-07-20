@@ -3,7 +3,7 @@
 [![CI](https://github.com/TimekeeperXY/LanClip/actions/workflows/ci.yml/badge.svg)](https://github.com/TimekeeperXY/LanClip/actions/workflows/ci.yml)
 [![MIT License](https://img.shields.io/badge/license-MIT-226541.svg)](LICENSE)
 
-[产品网站](https://timekeeperxy.github.io/LanClip/) · [下载 Windows 版](https://github.com/TimekeeperXY/LanClip/releases/latest) · [反馈问题](https://github.com/TimekeeperXY/LanClip/issues)
+[产品网站](https://timekeeperxy.github.io/LanClip/) · [下载最新版本](https://github.com/TimekeeperXY/LanClip/releases/latest) · [反馈问题](https://github.com/TimekeeperXY/LanClip/issues)
 
 LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的局域网剪贴板共享工具。两台可信设备完成一次性配对后，可在不经过云服务器的情况下自动同步文字和图片。
 

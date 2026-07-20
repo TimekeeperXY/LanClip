@@ -248,6 +248,137 @@ main, footer { max-width: 1320px; margin: 0 auto; }
 .workflow h3 { margin: 42px 0 9px; font-size: 22px; letter-spacing: -0.025em; }
 .workflow p { max-width: 25em; margin: 0; color: var(--muted); font-size: 14px; }
 
+.download-section {
+  border-top: 1px solid var(--line);
+}
+.download-heading {
+  max-width: 740px;
+}
+.download-heading span,
+.install-label {
+  color: var(--accent-strong);
+  font: 700 12px/1.2 Consolas, "Cascadia Mono", monospace;
+  letter-spacing: 0.12em;
+}
+.download-heading h2 {
+  margin: 16px 0 0;
+  max-width: 14em;
+  font-size: clamp(32px, 4vw, 58px);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.download-heading p {
+  max-width: 56ch;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 17px;
+}
+.download-grid {
+  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.download-card {
+  min-height: 260px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.download-card-mac {
+  background:
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 30%),
+    var(--surface-soft);
+}
+.download-card-top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.platform-mark {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-radius: 16px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.download-card h3 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+.download-card p {
+  max-width: 44em;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.download-card .button {
+  align-self: flex-start;
+}
+.mac-install {
+  margin-top: 16px;
+  padding: 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  gap: 32px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 82%, var(--accent-soft));
+}
+.mac-install h3 {
+  max-width: 18em;
+  margin: 12px 0 0;
+  font-size: clamp(24px, 2.6vw, 36px);
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+}
+.mac-install p {
+  max-width: 58ch;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.command-stack {
+  display: grid;
+  gap: 10px;
+}
+.command-stack code {
+  display: block;
+  overflow-x: auto;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
+  border-radius: 12px;
+  color: #ddf7e8;
+  background: #10251f;
+  font: 650 13px/1.5 Consolas, "Cascadia Mono", monospace;
+  white-space: nowrap;
+}
+.download-note {
+  max-width: 70ch;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.download-note a {
+  color: var(--accent-strong);
+  font-weight: 750;
+  border-bottom: 1px solid currentColor;
+}
+
 .open-section {
   display: grid;
   grid-template-columns: 0.42fr 1.58fr;
@@ -290,6 +421,7 @@ footer {
   .feature-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
   .feature-large { grid-row: auto; grid-column: 1 / 3; min-height: 430px; }
   .feature-system, .feature-compat { grid-column: auto; }
+  .mac-install { grid-template-columns: 1fr; }
   .workflow { grid-template-columns: 1fr; }
   .workflow article { min-height: auto; padding: 28px 0; border-left: 0; border-bottom: 1px solid var(--line); }
   .workflow h3 { margin-top: 18px; }
@@ -312,6 +444,12 @@ footer {
   .flow-visual span { width: 44px; height: 44px; }
   .flow-visual b { grid-column: 1 / 4; grid-row: 1; justify-self: center; }
   .feature-system ul { grid-template-columns: 1fr; }
+  .download-grid { grid-template-columns: 1fr; }
+  .download-card { min-height: auto; padding: 24px; }
+  .download-card-top { grid-template-columns: 1fr; }
+  .download-card .button { width: 100%; }
+  .mac-install { padding: 24px; }
+  .command-stack code { font-size: 12px; }
   .open-section { grid-template-columns: 1fr; gap: 36px; padding-inline: 28px; }
   .open-mark { font-size: 70px; }
   .open-actions { align-items: stretch; flex-direction: column; }
