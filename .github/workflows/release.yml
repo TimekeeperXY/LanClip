@@ -84,4 +84,4 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           mapfile -t files < <(find release-artifacts -type f | sort)
-          gh release create "$RELEASE_TAG" "${files[@]}" --generate-notes --title "LanClip $RELEASE_TAG"
+          gh release create "$RELEASE_TAG" "${files[@]}" --repo "${{ github.repository }}" --generate-notes --title "LanClip $RELEASE_TAG"
