@@ -42,17 +42,29 @@
 
 ## 第三阶段：macOS
 
+状态：Windows ↔ macOS 核心同步已在 Mac mini 真机验证通过，系统级体验与发布链路继续推进。
+
 - [x] 将剪贴板层拆成通用接口、Windows 实现与 macOS 实现入口
-- [ ] 在 Intel 与 Apple Silicon 上验证基础 `arboard` 文字剪贴板适配
-- [ ] 跑通 Windows ↔ macOS 双向文字同步
-- [ ] 接入 macOS 图片剪贴板读写，统一转换为 RGBA 传输格式
-- [ ] 验证 macOS 原生截图与常见截图工具复制行为
+- [x] 在 Apple Silicon Mac mini 上验证基础 `arboard` 文字剪贴板适配
+- [x] 跑通 Windows ↔ macOS 双向文字同步
+- [x] 跑通 Windows ↔ macOS 双向图片同步，复用 RGBA 传输格式
+- [x] 验证 macOS 原生截图、浏览器/预览复制图片与 Windows 常见截图工具复制行为
+- [x] 为 GitHub Actions 增加 macOS 编译与测试护栏
+- [ ] 在 Intel Mac 上补充验证
 - [ ] 加入菜单栏交互和登录启动
 - [ ] 使用 Keychain 保存可信设备密钥
 - [ ] 完成 macOS 权限说明、公证与签名
 - [ ] Windows ↔ macOS、macOS ↔ macOS 交叉测试
 
 验收标准：三种设备组合都能同步 Unicode 文字和常见截图，配对数据和协议保持兼容。
+
+### Windows ↔ macOS 真机验证记录
+
+- macOS 端应用可通过 `npm run tauri dev` 成功启动，主要功能页面可打开。
+- Windows 与 macOS 可在同一局域网内互相发现、配对并保持在线状态。
+- Windows → macOS 与 macOS → Windows 的纯文本同步均成功。
+- Windows → macOS 与 macOS → Windows 的截图、图片同步均成功，传输记录缩略图正常显示。
+- macOS 原生截图快捷键、`screencapture -c`、浏览器/预览复制图片，以及 Windows PixPin、Snipaste、微信、浏览器复制图片均已验证成功。
 
 ## 第四阶段：增强功能
 

@@ -5,13 +5,14 @@
 
 [产品网站](https://timekeeperxy.github.io/LanClip/) · [下载 Windows 版](https://github.com/TimekeeperXY/LanClip/releases/latest) · [反馈问题](https://github.com/TimekeeperXY/LanClip/issues)
 
-LanClip 是一个 Windows 优先、为 macOS 预留兼容层的局域网剪贴板共享工具。两台可信设备完成一次性配对后，可在不经过云服务器的情况下自动同步文字和图片。
+LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的局域网剪贴板共享工具。两台可信设备完成一次性配对后，可在不经过云服务器的情况下自动同步文字和图片。
 
 ![LanClip 产品主视觉](website/assets/lanclip-network-hero.jpg)
 
 ## 当前 MVP
 
 - Windows / macOS 通用的文字与 RGBA 图片剪贴板适配
+- Windows ↔ macOS 真机验证通过：文字、截图、图片与传输记录缩略图均可双向同步
 - UDP 局域网设备自动发现
 - 120 秒有效的 6 位一次性配对码
 - 每对设备独立的 256 位共享密钥
@@ -32,6 +33,12 @@ LanClip 是一个 Windows 优先、为 macOS 预留兼容层的局域网剪贴�
 - Windows 系统托盘入口
 - 关闭主窗口时继续驻留系统托盘，只有托盘菜单“退出 LanClip”才结束同步服务
 - 设置页可一键开启或关闭开机自启，登录系统后默认静默驻留托盘
+
+## 跨平台验证状态
+
+已完成 Windows ↔ macOS 真机验证：两端可互相发现、配对、保持在线，并完成文字、截图、图片的双向同步。已验证 macOS 原生截图快捷键、`screencapture -c`、浏览器/预览复制图片，以及 Windows PixPin、Snipaste、微信、浏览器复制图片到 Mac。
+
+仍在推进：macOS 菜单栏常驻体验、macOS 登录启动、Intel Mac 补充验证、macOS 打包签名与公证。
 
 ## 本地开发
 
