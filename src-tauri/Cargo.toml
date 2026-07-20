@@ -1,6 +1,6 @@
 [package]
 name = "lanclip"
-version = "0.2.1"
+version = "0.2.2"
 description = "Private clipboard sync for trusted devices on a local network"
 authors = ["LanClip contributors"]
 edition = "2021"
