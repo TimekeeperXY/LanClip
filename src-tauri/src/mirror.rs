@@ -331,7 +331,11 @@ fn start_process(
     port: Option<u16>,
     control: bool,
     mouse_mode: String,
+    max_fps: u16,
 ) -> Result<(), String> {
+    if !(15..=240).contains(&max_fps) {
+        return Err("投屏帧率需在 15–240 FPS 之间".into());
+    }
     let path = resolve_tool("scrcpy").ok_or_else(|| {
         "未找到 scrcpy。请先安装官方 scrcpy，并将其加入 PATH 后重启 LanClip。".to_string()
     })?;
@@ -353,7 +357,7 @@ fn start_process(
     let mut args = vec![
         "--window-title=LanClip · 安卓投屏".to_string(),
         "--max-size=1920".to_string(),
-        "--max-fps=60".to_string(),
+        format!("--max-fps={max_fps}"),
         "--no-audio".to_string(),
     ];
     if !control {
@@ -400,15 +404,33 @@ pub fn start(
     control: bool,
     mouse_mode: String,
 ) -> Result<(), String> {
-    start_process(None, address, port, control, mouse_mode)
+    start_with_fps(address, port, control, mouse_mode, 60)
+}
+
+pub fn start_with_fps(
+    address: Option<String>,
+    port: Option<u16>,
+    control: bool,
+    mouse_mode: String,
+    max_fps: u16,
+) -> Result<(), String> {
+    start_process(None, address, port, control, mouse_mode, max_fps)
 }
 
 pub fn start_selected(
     candidate: &MirrorCandidate,
     control: bool,
     mouse_mode: String,
+    max_fps: u16,
 ) -> Result<(), String> {
-    start_process(Some(&candidate.serial), None, None, control, mouse_mode)
+    start_process(
+        Some(&candidate.serial),
+        None,
+        None,
+        control,
+        mouse_mode,
+        max_fps,
+    )
 }
 
 pub fn stop() -> Result<(), String> {
