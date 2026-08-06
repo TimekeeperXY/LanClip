@@ -225,9 +225,11 @@ async fn start_mirror(
     mouse_mode: String,
     max_fps: Option<u16>,
     audio: Option<bool>,
+    screen_off: Option<bool>,
 ) -> Result<(), String> {
     let max_fps = max_fps.unwrap_or(60);
     let audio = audio.unwrap_or(false);
+    let screen_off = screen_off.unwrap_or(false);
     let remembered = {
         let state = state.read().await;
         device_id
@@ -300,7 +302,7 @@ async fn start_mirror(
     }
 
     if let Some(candidate) = selected.as_ref() {
-        mirror::start_selected(candidate, control, mouse_mode, max_fps, audio)?;
+        mirror::start_selected(candidate, control, mouse_mode, max_fps, audio, screen_off)?;
         let now = now_millis();
         let mut state = state.write().await;
         state.config.mirror_devices.insert(
@@ -322,6 +324,7 @@ async fn start_mirror(
             mouse_mode,
             max_fps,
             audio,
+            screen_off,
         )
     }
 }

@@ -333,6 +333,7 @@ fn start_process(
     mouse_mode: String,
     max_fps: u16,
     audio: bool,
+    screen_off: bool,
 ) -> Result<(), String> {
     if !(15..=240).contains(&max_fps) {
         return Err("投屏帧率需在 15–240 FPS 之间".into());
@@ -366,6 +367,12 @@ fn start_process(
         args.push("--audio-source=output".to_string());
     } else {
         args.push("--no-audio".to_string());
+    }
+    if screen_off {
+        // Keep mirroring while powering off the Android display. This is not the
+        // same as showing the Android lock screen; it is the scrcpy best-effort
+        // display power-off mode.
+        args.push("--turn-screen-off".to_string());
     }
     if !control {
         args.push("--no-control".to_string());
@@ -412,8 +419,11 @@ pub fn start_with_fps(
     mouse_mode: String,
     max_fps: u16,
     audio: bool,
+    screen_off: bool,
 ) -> Result<(), String> {
-    start_process(None, address, port, control, mouse_mode, max_fps, audio)
+    start_process(
+        None, address, port, control, mouse_mode, max_fps, audio, screen_off,
+    )
 }
 
 pub fn start_selected(
@@ -422,6 +432,7 @@ pub fn start_selected(
     mouse_mode: String,
     max_fps: u16,
     audio: bool,
+    screen_off: bool,
 ) -> Result<(), String> {
     start_process(
         Some(&candidate.serial),
@@ -431,6 +442,7 @@ pub fn start_selected(
         mouse_mode,
         max_fps,
         audio,
+        screen_off,
     )
 }
 
