@@ -53,6 +53,37 @@ h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.7px; margin: 0; }
 .status-label { display: inline-flex; color: #d8ff66; background: #d8ff6612; border: 1px solid #d8ff6630; padding: 4px 9px; border-radius: 20px; text-transform: uppercase; font-size: 9px; font-weight: 700; letter-spacing: .8px; }
 .sync-copy h2 { margin: 11px 0 7px; max-width: 580px; font-size: 21px; letter-spacing: -.4px; }
 .sync-copy p { max-width: 650px; margin: 0; color: #a9beb6; font-size: 12px; line-height: 1.7; }
+.mirror-hero { position: relative; overflow: hidden; min-height: 168px; border-radius: 17px; padding: 27px 29px; display: grid; grid-template-columns: 72px minmax(0,1fr) auto; align-items: center; gap: 20px; background: #294b62; color: white; box-shadow: 0 14px 40px #18354a24; }
+.mirror-hero::after { content: ""; position: absolute; width: 340px; height: 340px; right: -130px; top: -210px; background: radial-gradient(circle, #bde9ff35, transparent 65%); }
+.mirror-hero.running { background: #245a4b; }
+.mirror-hero h2 { position: relative; z-index: 1; margin: 11px 0 7px; font-size: 21px; letter-spacing: -.4px; }
+.mirror-hero p { position: relative; z-index: 1; max-width: 650px; margin: 0; color: #c4d8e4; font-size: 12px; line-height: 1.7; }
+.mirror-hero-icon { position: relative; z-index: 1; width: 62px; height: 62px; display: grid; place-items: center; color: #183a4f; background: #bde9ff; border-radius: 18px; box-shadow: 0 0 0 9px #bde9ff12, 0 8px 24px #0a1e1970; }
+.mirror-status { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 7px; color: #c4d8e4; font-size: 10px; white-space: nowrap; }
+.mirror-status i { display: block; width: 8px; height: 8px; border-radius: 50%; background: #99aab3; }
+.mirror-status.on { color: #d8ff66; }
+.mirror-status.on i { background: #d8ff66; box-shadow: 0 0 0 4px #d8ff6622; }
+.mirror-warning { align-items: flex-start; }
+.mirror-warning a { display: inline-block; margin-top: 7px; color: #2a7358; font-size: 10px; text-decoration: none; }
+.mirror-warning a:hover { text-decoration: underline; }
+.mirror-grid { display: grid; grid-template-columns: minmax(0,1.12fr) minmax(280px,.88fr); gap: 15px; }
+.mirror-card { min-width: 0; }
+.mirror-form { display: grid; grid-template-columns: minmax(0,1fr) 100px; gap: 11px; margin: 17px 0 14px; }
+.mirror-field { display: grid; gap: 6px; color: #677a72; font-size: 10px; }
+.mirror-field input { height: 39px; width: 100%; padding: 0 11px; border: 1px solid #d6dfda; border-radius: 9px; background: #f8faf9; outline: none; color: #173d33; font-size: 11px; }
+.mirror-field input:focus { border-color: #4d7a6c; box-shadow: 0 0 0 3px #2d6b5915; }
+.mirror-field input:disabled { color: #8c9994; background: #f0f3f1; }
+.mirror-control { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid #e1e8e3; border-radius: 10px; background: #fafcfb; cursor: pointer; }
+.mirror-control input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: #2c765b; }
+.mirror-control span { display: flex; flex-direction: column; gap: 3px; }
+.mirror-control strong { color: #334b42; font-size: 11px; }
+.mirror-control small { color: #87958f; font-size: 9px; }
+.mirror-actions { display: flex; gap: 9px; margin-top: 16px; }
+.mirror-version { margin: 13px 0 0; color: #8b9993; font-size: 9px; }
+.mirror-steps { display: grid; gap: 12px; margin: 17px 0 20px; padding-left: 21px; color: #667970; font-size: 10px; line-height: 1.65; }
+.mirror-steps li::marker { color: #3a8065; font-weight: 700; }
+.mirror-note { display: flex; align-items: flex-start; gap: 8px; padding: 11px; border-radius: 9px; background: #f1f7f4; color: #5f776e; font-size: 9px; line-height: 1.6; }
+.mirror-note svg { flex: 0 0 auto; color: #347457; margin-top: 1px; }
 .toggle-block { position: relative; z-index: 1; min-width: 74px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; color: #afc2bb; font-size: 10px; }
 .switch { width: 48px; height: 27px; padding: 3px; background: #899590; border: 0; border-radius: 30px; cursor: pointer; transition: .2s; }
 .switch i { display: block; width: 21px; height: 21px; background: white; border-radius: 50%; box-shadow: 0 2px 5px #0003; transition: .2s; }
@@ -150,4 +181,4 @@ h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.7px; margin: 0; }
 .toast span { width: 20px; height: 20px; display: grid; place-items: center; background: #ffb2a8; color: #52211d; border-radius: 50%; font-weight: 700; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
-@media (max-width: 980px) { .app-shell { grid-template-columns: 205px 1fr; } .main-content { padding-inline: 25px; } .sync-hero { grid-template-columns: 95px minmax(0,1fr) auto; padding-inline: 20px; } .sync-visual { width: 90px; transform: scale(.85); } }
+@media (max-width: 980px) { .app-shell { grid-template-columns: 205px 1fr; } .main-content { padding-inline: 25px; } .sync-hero { grid-template-columns: 95px minmax(0,1fr) auto; padding-inline: 20px; } .sync-visual { width: 90px; transform: scale(.85); } .mirror-hero { grid-template-columns: 62px minmax(0,1fr) auto; padding-inline: 20px; } .mirror-grid { grid-template-columns: 1fr; } }

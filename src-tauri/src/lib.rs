@@ -1,5 +1,6 @@
 mod clipboard;
 mod crypto;
+mod mirror;
 mod model;
 mod network;
 mod secrets;
@@ -108,6 +109,21 @@ fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
 fn repair_firewall() -> Result<(), String> {
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     system::request_firewall_access(&executable)
+}
+
+#[tauri::command]
+fn get_mirror_status() -> Result<mirror::MirrorStatus, String> {
+    mirror::status()
+}
+
+#[tauri::command]
+fn start_mirror(address: Option<String>, port: Option<u16>, control: bool) -> Result<(), String> {
+    mirror::start(address, port, control)
+}
+
+#[tauri::command]
+fn stop_mirror() -> Result<(), String> {
+    mirror::stop()
 }
 
 fn current_platform() -> &'static str {
@@ -230,15 +246,22 @@ pub fn run() {
             get_system_status,
             set_autostart,
             repair_firewall,
+            get_mirror_status,
+            start_mirror,
+            stop_mirror,
         ])
         .build(tauri::generate_context!())
         .expect("error while building LanClip");
 
-    app.run(move |_app, event| {
-        if let RunEvent::ExitRequested { api, .. } = event {
+    app.run(move |_app, event| match event {
+        RunEvent::ExitRequested { api, .. } => {
             if !quitting_from_app.load(Ordering::SeqCst) {
                 api.prevent_exit();
             }
         }
+        RunEvent::Exit => {
+            let _ = mirror::stop();
+        }
+        _ => {}
     });
 }

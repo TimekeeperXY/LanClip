@@ -46,6 +46,13 @@ type SystemStatus = {
   secureStorage: boolean;
   installedMode: boolean;
 };
+type MirrorStatus = {
+  available: boolean;
+  scrcpyPath?: string;
+  scrcpyVersion?: string;
+  adbAvailable: boolean;
+  running: boolean;
+};
 
 const APP_VERSION = "0.2.3";
 
@@ -70,6 +77,7 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     shield: <path d="M12 22s8-3.7 8-10V5l-8-3-8 3v7c0 6.3 8 10 8 10Z"/>,
     plus: <path d="M12 5v14M5 12h14"/>,
     monitor: <><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></>,
+    phone: <><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 5h4M11 18.5h2"/></>,
     copy: <><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2"/></>,
     arrowUp: <path d="m6 15 6-6 6 6"/>,
     arrowDown: <path d="m6 9 6 6 6-6"/>,
@@ -86,7 +94,7 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
 
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>(demoSnapshot);
-  const [page, setPage] = useState<"overview" | "devices" | "activity" | "settings">("overview");
+  const [page, setPage] = useState<"overview" | "devices" | "activity" | "mirror" | "settings">("overview");
   const [busy, setBusy] = useState<string>();
   const [pairTarget, setPairTarget] = useState<DiscoveredDevice>();
   const [pairCode, setPairCode] = useState("");
@@ -94,6 +102,10 @@ function App() {
   const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState<string>();
   const [systemStatus, setSystemStatus] = useState<SystemStatus>();
+  const [mirrorStatus, setMirrorStatus] = useState<MirrorStatus>();
+  const [mirrorAddress, setMirrorAddress] = useState("");
+  const [mirrorPort, setMirrorPort] = useState("5555");
+  const [mirrorControl, setMirrorControl] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!isTauri()) return;
@@ -113,12 +125,22 @@ function App() {
     }
   }, []);
 
+  const refreshMirror = useCallback(async () => {
+    if (!isTauri()) return;
+    try {
+      setMirrorStatus(await invoke<MirrorStatus>("get_mirror_status"));
+    } catch (err) {
+      setError(String(err));
+    }
+  }, []);
+
   useEffect(() => {
     refresh();
     refreshSystem();
-    const timer = window.setInterval(refresh, 1200);
+    refreshMirror();
+    const timer = window.setInterval(() => { refresh(); refreshMirror(); }, 1200);
     return () => window.clearInterval(timer);
-  }, [refresh, refreshSystem]);
+  }, [refresh, refreshSystem, refreshMirror]);
 
   useEffect(() => setDeviceName(snapshot.deviceName), [snapshot.deviceName]);
   useEffect(() => {
@@ -137,6 +159,7 @@ function App() {
       await invoke(command, args);
       await refresh();
       if (command === "set_autostart" || command === "repair_firewall") await refreshSystem();
+      if (command === "start_mirror" || command === "stop_mirror") await refreshMirror();
     } catch (err) {
       setError(String(err));
       throw err;
@@ -146,10 +169,12 @@ function App() {
   };
 
   const onlineCount = snapshot.peers.filter((peer) => peer.online).length;
-  const title = { overview: "概览", devices: "设备", activity: "传输记录", settings: "设置" }[page];
+  const title = { overview: "概览", devices: "设备", activity: "传输记录", mirror: "安卓投屏", settings: "设置" }[page];
 
   const startPairing = () => run("pairing", "start_pairing").catch(() => undefined);
   const toggleSync = () => run("sync", "set_sync_enabled", { enabled: !snapshot.syncEnabled }).catch(() => undefined);
+  const startMirror = () => run("mirror-start", "start_mirror", { address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl }).catch(() => undefined);
+  const stopMirror = () => run("mirror-stop", "stop_mirror").catch(() => undefined);
 
   const submitPair = async (event: FormEvent) => {
     event.preventDefault();
@@ -180,6 +205,7 @@ function App() {
         <nav className="nav-list" aria-label="主导航">
           <NavButton active={page === "overview"} icon="home" label="概览" onClick={() => setPage("overview")}/>
           <NavButton active={page === "devices"} icon="devices" label="设备" badge={snapshot.peers.length || undefined} onClick={() => setPage("devices")}/>
+          <NavButton active={page === "mirror"} icon="phone" label="安卓投屏" onClick={() => setPage("mirror")}/>
           <NavButton active={page === "activity"} icon="activity" label="传输记录" onClick={() => setPage("activity")}/>
           <NavButton active={page === "settings"} icon="settings" label="设置" onClick={() => setPage("settings")}/>
         </nav>
@@ -207,6 +233,7 @@ function App() {
 
         {page === "overview" && <Overview snapshot={snapshot} onlineCount={onlineCount} busy={busy} onToggle={toggleSync} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
         {page === "devices" && <DevicesPage snapshot={snapshot} busy={busy} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
+        {page === "mirror" && <MirrorPage status={mirrorStatus} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} onStart={startMirror} onStop={stopMirror} />}
         {page === "activity" && <ActivityPage transfers={snapshot.transfers} onClear={() => run("clear", "clear_history").catch(() => undefined)}/>}
         {page === "settings" && <SettingsPage snapshot={snapshot} systemStatus={systemStatus} busy={busy} onToggle={toggleSync} onRename={() => setRenameOpen(true)} onAutostart={() => run("autostart", "set_autostart", { enabled: !systemStatus?.autostartEnabled }).catch(() => undefined)} onFirewall={() => run("firewall", "repair_firewall").catch(() => undefined)}/>}
       </main>
@@ -246,6 +273,50 @@ function DevicesPage({ snapshot, busy, onStartPairing, onPair, onUnpair }: { sna
 function PeerCard({ peer, busy, onUnpair }: { peer: Peer; busy: boolean; onUnpair: () => void }) {
   const [menu, setMenu] = useState(false);
   return <article className="peer-card"><div className="peer-top"><span className="device-icon large"><Icon name="monitor" size={24}/><i className={peer.online ? "online" : ""}/></span><button className="icon-button" onClick={() => setMenu(!menu)}><Icon name="more"/>{menu && <span className="popover" onClick={(e) => {e.stopPropagation(); onUnpair();}}>{busy ? "正在解除…" : "解除绑定"}</span>}</button></div><h3>{peer.deviceName}</h3><p>{peer.online ? peer.address : "当前离线"}</p><div className="peer-state"><span className={peer.online ? "online" : ""}><i/>{peer.online ? "在线 · 自动同步" : "离线"}</span><Icon name="lock" size={15}/></div></article>;
+}
+
+function MirrorPage({ status, busy, address, setAddress, port, setPort, control, setControl, onStart, onStop }: {
+  status?: MirrorStatus;
+  busy?: string;
+  address: string;
+  setAddress: (value: string) => void;
+  port: string;
+  setPort: (value: string) => void;
+  control: boolean;
+  setControl: (value: boolean) => void;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  const ready = !!status?.available;
+  const running = !!status?.running;
+  return <div className="page-stack mirror-page">
+    <section className={`mirror-hero ${running ? "running" : ""}`}>
+      <div className="mirror-hero-icon"><Icon name="phone" size={30}/></div>
+      <div><span className="status-label">桌面端实验版</span><h2>把安卓屏幕带到电脑上</h2><p>LanClip 负责局域网入口和会话管理，scrcpy 负责低延迟投屏与鼠标键盘控制。</p></div>
+      <span className={`mirror-status ${running ? "on" : ""}`}><i/>{running ? "投屏中" : "未启动"}</span>
+    </section>
+
+    {!ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 scrcpy</strong><p>请先安装官方 scrcpy，并确保命令可以在 PowerShell 或终端中直接运行，然后重启 LanClip。</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看官方安装说明 ↗</a></div></section>}
+
+    <div className="mirror-grid">
+      <section className="settings-card mirror-card">
+        <div className="section-heading"><div><h2>连接安卓设备</h2><p>地址留空时使用已授权的 USB 设备</p></div>{status?.adbAvailable && <span className="health-badge ok"><i/>ADB 可用</span>}</div>
+        <div className="mirror-form">
+          <label className="mirror-field"><span>安卓设备 IP（可选）</span><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="例如 192.168.1.25" disabled={running}/></label>
+          <label className="mirror-field port-field"><span>端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
+        </div>
+        <label className="mirror-control"><input type="checkbox" checked={control} onChange={(event) => setControl(event.target.checked)} disabled={running}/><span><strong>允许鼠标键盘控制</strong><small>关闭后仅投屏查看，不会向手机发送操作</small></span></label>
+        <div className="mirror-actions"><button className="primary-button" onClick={onStart} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
+        {status?.scrcpyVersion && <p className="mirror-version">检测到 {status.scrcpyVersion}</p>}
+      </section>
+
+      <section className="settings-card mirror-card">
+        <h2>首次连接步骤</h2>
+        <ol className="mirror-steps"><li>手机与电脑连接同一个局域网。</li><li>首次使用先打开开发者选项和 USB 调试；手机弹出授权提示时选择允许。</li><li>无线投屏时，先让 scrcpy/ADB 完成无线调试连接，再把手机 IP 填入上方。</li><li>点击“开始投屏”，scrcpy 会打开独立的安卓画面窗口。</li></ol>
+        <div className="mirror-note"><Icon name="shield" size={16}/><span>当前版本不安装安卓 App，也不会把控制权限授予未授权的设备。投屏窗口由 scrcpy 管理。</span></div>
+      </section>
+    </div>
+  </div>;
 }
 
 function EmptyDevices({ onStart }: { onStart: () => void }) {
