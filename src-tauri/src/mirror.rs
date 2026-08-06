@@ -332,6 +332,7 @@ fn start_process(
     control: bool,
     mouse_mode: String,
     max_fps: u16,
+    audio: bool,
 ) -> Result<(), String> {
     if !(15..=240).contains(&max_fps) {
         return Err("投屏帧率需在 15–240 FPS 之间".into());
@@ -358,8 +359,14 @@ fn start_process(
         "--window-title=LanClip · 安卓投屏".to_string(),
         "--max-size=1920".to_string(),
         format!("--max-fps={max_fps}"),
-        "--no-audio".to_string(),
     ];
+    if audio {
+        // The `output` source captures the complete device output and, unlike
+        // `playback`/`--audio-dup`, disables playback on the Android speaker.
+        args.push("--audio-source=output".to_string());
+    } else {
+        args.push("--no-audio".to_string());
+    }
     if !control {
         args.push("--no-control".to_string());
     } else {
@@ -398,23 +405,15 @@ fn start_process(
     Ok(())
 }
 
-pub fn start(
-    address: Option<String>,
-    port: Option<u16>,
-    control: bool,
-    mouse_mode: String,
-) -> Result<(), String> {
-    start_with_fps(address, port, control, mouse_mode, 60)
-}
-
 pub fn start_with_fps(
     address: Option<String>,
     port: Option<u16>,
     control: bool,
     mouse_mode: String,
     max_fps: u16,
+    audio: bool,
 ) -> Result<(), String> {
-    start_process(None, address, port, control, mouse_mode, max_fps)
+    start_process(None, address, port, control, mouse_mode, max_fps, audio)
 }
 
 pub fn start_selected(
@@ -422,6 +421,7 @@ pub fn start_selected(
     control: bool,
     mouse_mode: String,
     max_fps: u16,
+    audio: bool,
 ) -> Result<(), String> {
     start_process(
         Some(&candidate.serial),
@@ -430,6 +430,7 @@ pub fn start_selected(
         control,
         mouse_mode,
         max_fps,
+        audio,
     )
 }
 

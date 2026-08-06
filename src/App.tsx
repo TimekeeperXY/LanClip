@@ -120,6 +120,7 @@ function App() {
   const [mirrorControl, setMirrorControl] = useState(true);
   const [mirrorMouseMode, setMirrorMouseMode] = useState<MirrorMouseMode>("sdk");
   const [mirrorMaxFps, setMirrorMaxFps] = useState(60);
+  const [mirrorAudio, setMirrorAudio] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!isTauri()) return;
@@ -205,7 +206,7 @@ function App() {
 
   const startPairing = () => run("pairing", "start_pairing").catch(() => undefined);
   const toggleSync = () => run("sync", "set_sync_enabled", { enabled: !snapshot.syncEnabled }).catch(() => undefined);
-  const startMirror = (deviceId?: string) => run("mirror-start", "start_mirror", { deviceId: deviceId ?? null, address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl, mouseMode: mirrorMouseMode, maxFps: mirrorMaxFps }).catch(() => undefined);
+  const startMirror = (deviceId?: string) => run("mirror-start", "start_mirror", { deviceId: deviceId ?? null, address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl, mouseMode: mirrorMouseMode, maxFps: mirrorMaxFps, audio: mirrorAudio }).catch(() => undefined);
   const stopMirror = () => run("mirror-stop", "stop_mirror").catch(() => undefined);
 
   const submitPair = async (event: FormEvent) => {
@@ -265,7 +266,7 @@ function App() {
 
         {page === "overview" && <Overview snapshot={snapshot} onlineCount={onlineCount} busy={busy} onToggle={toggleSync} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
         {page === "devices" && <DevicesPage snapshot={snapshot} busy={busy} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
-        {page === "mirror" && <MirrorPage status={mirrorStatus} devices={mirrorDevices} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} maxFps={mirrorMaxFps} setMaxFps={setMirrorMaxFps} onRefreshDevices={refreshMirrorDevices} onStart={startMirror} onStop={stopMirror} onUnbind={(id) => run(`mirror-unbind-${id}`, "unbind_mirror_device", { deviceId: id }).then(refreshMirrorDevices).catch(() => undefined)} />}
+        {page === "mirror" && <MirrorPage status={mirrorStatus} devices={mirrorDevices} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} maxFps={mirrorMaxFps} setMaxFps={setMirrorMaxFps} audio={mirrorAudio} setAudio={setMirrorAudio} onRefreshDevices={refreshMirrorDevices} onStart={startMirror} onStop={stopMirror} onUnbind={(id) => run(`mirror-unbind-${id}`, "unbind_mirror_device", { deviceId: id }).then(refreshMirrorDevices).catch(() => undefined)} />}
         {page === "activity" && <ActivityPage transfers={snapshot.transfers} onClear={() => run("clear", "clear_history").catch(() => undefined)}/>}
         {page === "settings" && <SettingsPage snapshot={snapshot} systemStatus={systemStatus} busy={busy} onToggle={toggleSync} onRename={() => setRenameOpen(true)} onAutostart={() => run("autostart", "set_autostart", { enabled: !systemStatus?.autostartEnabled }).catch(() => undefined)} onFirewall={() => run("firewall", "repair_firewall").catch(() => undefined)}/>}
       </main>
@@ -307,7 +308,7 @@ function PeerCard({ peer, busy, onUnpair }: { peer: Peer; busy: boolean; onUnpai
   return <article className="peer-card"><div className="peer-top"><span className="device-icon large"><Icon name="monitor" size={24}/><i className={peer.online ? "online" : ""}/></span><button className="icon-button" onClick={() => setMenu(!menu)}><Icon name="more"/>{menu && <span className="popover" onClick={(e) => {e.stopPropagation(); onUnpair();}}>{busy ? "正在解除…" : "解除绑定"}</span>}</button></div><h3>{peer.deviceName}</h3><p>{peer.online ? peer.address : "当前离线"}</p><div className="peer-state"><span className={peer.online ? "online" : ""}><i/>{peer.online ? "在线 · 自动同步" : "离线"}</span><Icon name="lock" size={15}/></div></article>;
 }
 
-function MirrorPage({ status, devices, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, maxFps, setMaxFps, onRefreshDevices, onStart, onStop, onUnbind }: {
+function MirrorPage({ status, devices, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, maxFps, setMaxFps, audio, setAudio, onRefreshDevices, onStart, onStop, onUnbind }: {
   status?: MirrorStatus;
   devices: MirrorDevice[];
   busy?: string;
@@ -321,6 +322,8 @@ function MirrorPage({ status, devices, busy, address, setAddress, port, setPort,
   setMouseMode: (value: MirrorMouseMode) => void;
   maxFps: number;
   setMaxFps: (value: number) => void;
+  audio: boolean;
+  setAudio: (value: boolean) => void;
   onRefreshDevices: () => void;
   onStart: (deviceId?: string) => void;
   onStop: () => void;
@@ -354,6 +357,7 @@ function MirrorPage({ status, devices, busy, address, setAddress, port, setPort,
           <label className="mirror-field port-field"><span>端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
         </div>
         <label className="mirror-control"><input type="checkbox" checked={control} onChange={(event) => setControl(event.target.checked)} disabled={running}/><span><strong>允许鼠标键盘控制</strong><small>关闭后仅投屏查看，不会向手机发送操作</small></span></label>
+        <label className="mirror-control"><input type="checkbox" checked={audio} onChange={(event) => setAudio(event.target.checked)} disabled={running}/><span><strong>电脑播放安卓音频</strong><small>Android 11+ 会将声音转发到电脑，并关闭手机扬声器播放</small></span></label>
         {control && <label className="mirror-field mirror-mode-field"><span>输入控制模式</span><select value={mouseMode} onChange={(event) => setMouseMode(event.target.value as MirrorMouseMode)} disabled={running}><option value="sdk">标准触控（推荐）</option><option value="uhid">UHID 兼容模式（小米设备可尝试）</option></select><small>{mouseMode === "uhid" ? "鼠标会被捕获；按 Alt 或 Super 可释放鼠标。" : "如果小米/红米设备无法点击，请开启 USB 调试（安全设置）或改用 UHID。"}</small></label>}
         <label className="mirror-field mirror-mode-field"><span>投屏帧率上限</span><select value={maxFps} onChange={(event) => setMaxFps(Number(event.target.value))} disabled={running}><option value={30}>30 FPS · 稳定省资源</option><option value={60}>60 FPS · 推荐</option><option value={90}>90 FPS</option><option value={120}>120 FPS</option><option value={165}>165 FPS · 设备支持时</option></select><small>这是视频采集上限，不等于实际帧率；实际效果取决于手机刷新率、编码器和 USB/无线带宽。</small></label>
         <div className="mirror-actions"><button className="primary-button" onClick={() => onStart()} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
