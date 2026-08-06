@@ -53,6 +53,7 @@ type MirrorStatus = {
   adbAvailable: boolean;
   running: boolean;
 };
+type MirrorMouseMode = "sdk" | "uhid";
 
 const APP_VERSION = "0.2.3";
 
@@ -106,6 +107,7 @@ function App() {
   const [mirrorAddress, setMirrorAddress] = useState("");
   const [mirrorPort, setMirrorPort] = useState("5555");
   const [mirrorControl, setMirrorControl] = useState(true);
+  const [mirrorMouseMode, setMirrorMouseMode] = useState<MirrorMouseMode>("sdk");
 
   const refresh = useCallback(async () => {
     if (!isTauri()) return;
@@ -173,7 +175,7 @@ function App() {
 
   const startPairing = () => run("pairing", "start_pairing").catch(() => undefined);
   const toggleSync = () => run("sync", "set_sync_enabled", { enabled: !snapshot.syncEnabled }).catch(() => undefined);
-  const startMirror = () => run("mirror-start", "start_mirror", { address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl }).catch(() => undefined);
+  const startMirror = () => run("mirror-start", "start_mirror", { address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl, mouseMode: mirrorMouseMode }).catch(() => undefined);
   const stopMirror = () => run("mirror-stop", "stop_mirror").catch(() => undefined);
 
   const submitPair = async (event: FormEvent) => {
@@ -233,7 +235,7 @@ function App() {
 
         {page === "overview" && <Overview snapshot={snapshot} onlineCount={onlineCount} busy={busy} onToggle={toggleSync} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
         {page === "devices" && <DevicesPage snapshot={snapshot} busy={busy} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
-        {page === "mirror" && <MirrorPage status={mirrorStatus} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} onStart={startMirror} onStop={stopMirror} />}
+        {page === "mirror" && <MirrorPage status={mirrorStatus} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} onStart={startMirror} onStop={stopMirror} />}
         {page === "activity" && <ActivityPage transfers={snapshot.transfers} onClear={() => run("clear", "clear_history").catch(() => undefined)}/>}
         {page === "settings" && <SettingsPage snapshot={snapshot} systemStatus={systemStatus} busy={busy} onToggle={toggleSync} onRename={() => setRenameOpen(true)} onAutostart={() => run("autostart", "set_autostart", { enabled: !systemStatus?.autostartEnabled }).catch(() => undefined)} onFirewall={() => run("firewall", "repair_firewall").catch(() => undefined)}/>}
       </main>
@@ -275,7 +277,7 @@ function PeerCard({ peer, busy, onUnpair }: { peer: Peer; busy: boolean; onUnpai
   return <article className="peer-card"><div className="peer-top"><span className="device-icon large"><Icon name="monitor" size={24}/><i className={peer.online ? "online" : ""}/></span><button className="icon-button" onClick={() => setMenu(!menu)}><Icon name="more"/>{menu && <span className="popover" onClick={(e) => {e.stopPropagation(); onUnpair();}}>{busy ? "正在解除…" : "解除绑定"}</span>}</button></div><h3>{peer.deviceName}</h3><p>{peer.online ? peer.address : "当前离线"}</p><div className="peer-state"><span className={peer.online ? "online" : ""}><i/>{peer.online ? "在线 · 自动同步" : "离线"}</span><Icon name="lock" size={15}/></div></article>;
 }
 
-function MirrorPage({ status, busy, address, setAddress, port, setPort, control, setControl, onStart, onStop }: {
+function MirrorPage({ status, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, onStart, onStop }: {
   status?: MirrorStatus;
   busy?: string;
   address: string;
@@ -284,6 +286,8 @@ function MirrorPage({ status, busy, address, setAddress, port, setPort, control,
   setPort: (value: string) => void;
   control: boolean;
   setControl: (value: boolean) => void;
+  mouseMode: MirrorMouseMode;
+  setMouseMode: (value: MirrorMouseMode) => void;
   onStart: () => void;
   onStop: () => void;
 }) {
@@ -306,13 +310,14 @@ function MirrorPage({ status, busy, address, setAddress, port, setPort, control,
           <label className="mirror-field port-field"><span>端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
         </div>
         <label className="mirror-control"><input type="checkbox" checked={control} onChange={(event) => setControl(event.target.checked)} disabled={running}/><span><strong>允许鼠标键盘控制</strong><small>关闭后仅投屏查看，不会向手机发送操作</small></span></label>
+        {control && <label className="mirror-field mirror-mode-field"><span>输入控制模式</span><select value={mouseMode} onChange={(event) => setMouseMode(event.target.value as MirrorMouseMode)} disabled={running}><option value="sdk">标准触控（推荐）</option><option value="uhid">UHID 兼容模式（小米设备可尝试）</option></select><small>{mouseMode === "uhid" ? "鼠标会被捕获；按 Alt 或 Super 可释放鼠标。" : "如果小米/红米设备无法点击，请开启 USB 调试（安全设置）或改用 UHID。"}</small></label>}
         <div className="mirror-actions"><button className="primary-button" onClick={onStart} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
         {status?.scrcpyVersion && <p className="mirror-version">检测到 {status.scrcpyVersion}</p>}
       </section>
 
       <section className="settings-card mirror-card">
         <h2>首次连接步骤</h2>
-        <ol className="mirror-steps"><li>手机与电脑连接同一个局域网。</li><li>首次使用先打开开发者选项和 USB 调试；手机弹出授权提示时选择允许。</li><li>无线投屏时，先让 scrcpy/ADB 完成无线调试连接，再把手机 IP 填入上方。</li><li>点击“开始投屏”，scrcpy 会打开独立的安卓画面窗口。</li></ol>
+        <ol className="mirror-steps"><li>手机与电脑连接同一个局域网。</li><li>首次使用先打开开发者选项和 USB 调试；手机弹出授权提示时选择允许。</li><li>小米/红米/POCO 还要开启“USB 调试（安全设置）/允许通过 USB 调试模拟输入”，开启后重启手机。</li><li>Android 11+ 无线调试需要先完成“配对端口”配对，再用“连接端口”执行 ADB 连接，最后把连接端口填入上方。</li><li>点击“开始投屏”，scrcpy 会打开独立的安卓画面窗口。</li></ol>
         <div className="mirror-note"><Icon name="shield" size={16}/><span>当前版本不安装安卓 App，也不会把控制权限授予未授权的设备。投屏窗口由 scrcpy 管理。</span></div>
       </section>
     </div>

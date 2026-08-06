@@ -117,8 +117,13 @@ fn get_mirror_status() -> Result<mirror::MirrorStatus, String> {
 }
 
 #[tauri::command]
-fn start_mirror(address: Option<String>, port: Option<u16>, control: bool) -> Result<(), String> {
-    mirror::start(address, port, control)
+fn start_mirror(
+    address: Option<String>,
+    port: Option<u16>,
+    control: bool,
+    mouse_mode: String,
+) -> Result<(), String> {
+    mirror::start(address, port, control, mouse_mode)
 }
 
 #[tauri::command]

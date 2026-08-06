@@ -73,6 +73,11 @@ h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.7px; margin: 0; }
 .mirror-field input { height: 39px; width: 100%; padding: 0 11px; border: 1px solid #d6dfda; border-radius: 9px; background: #f8faf9; outline: none; color: #173d33; font-size: 11px; }
 .mirror-field input:focus { border-color: #4d7a6c; box-shadow: 0 0 0 3px #2d6b5915; }
 .mirror-field input:disabled { color: #8c9994; background: #f0f3f1; }
+.mirror-field select { height: 39px; width: 100%; padding: 0 11px; border: 1px solid #d6dfda; border-radius: 9px; background: #f8faf9; outline: none; color: #173d33; font-size: 11px; }
+.mirror-field select:focus { border-color: #4d7a6c; box-shadow: 0 0 0 3px #2d6b5915; }
+.mirror-field select:disabled { color: #8c9994; background: #f0f3f1; }
+.mirror-mode-field { margin-top: 13px; }
+.mirror-mode-field small { color: #87958f; font-size: 9px; line-height: 1.5; }
 .mirror-control { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid #e1e8e3; border-radius: 10px; background: #fafcfb; cursor: pointer; }
 .mirror-control input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: #2c765b; }
 .mirror-control span { display: flex; flex-direction: column; gap: 3px; }

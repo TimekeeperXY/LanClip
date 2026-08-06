@@ -133,7 +133,12 @@ fn valid_endpoint(value: &str) -> bool {
             .all(|character| character.is_ascii_alphanumeric() || ".:-_[]".contains(character))
 }
 
-pub fn start(address: Option<String>, port: Option<u16>, control: bool) -> Result<(), String> {
+pub fn start(
+    address: Option<String>,
+    port: Option<u16>,
+    control: bool,
+    mouse_mode: String,
+) -> Result<(), String> {
     let path = resolve_tool("scrcpy").ok_or_else(|| {
         "未找到 scrcpy。请先安装官方 scrcpy，并将其加入 PATH 后重启 LanClip。".to_string()
     })?;
@@ -160,6 +165,14 @@ pub fn start(address: Option<String>, port: Option<u16>, control: bool) -> Resul
     ];
     if !control {
         args.push("--no-control".to_string());
+    } else {
+        match mouse_mode.as_str() {
+            "sdk" | "uhid" => args.push(format!("--mouse={mouse_mode}")),
+            _ => return Err("未知的鼠标控制模式".into()),
+        }
+        if mouse_mode == "uhid" {
+            args.push("--keyboard=uhid".to_string());
+        }
     }
     if let Some(address) = address
         .map(|value| value.trim().to_string())
@@ -168,7 +181,11 @@ pub fn start(address: Option<String>, port: Option<u16>, control: bool) -> Resul
         if !valid_endpoint(&address) {
             return Err("安卓设备地址只能包含 IP、主机名和端口分隔符".into());
         }
-        args.push(format!("--tcpip={address}:{}", port.unwrap_or(5555)));
+        args.push(format!("--tcpip=+{address}:{}", port.unwrap_or(5555)));
+    } else {
+        // When both USB and wireless ADB are connected, scrcpy otherwise reports
+        // multiple devices. The desktop mirror action without an address means USB.
+        args.push("--select-usb".to_string());
     }
 
     let child = Command::new(path)
