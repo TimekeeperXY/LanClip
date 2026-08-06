@@ -89,6 +89,17 @@ h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.7px; margin: 0; }
 .mirror-steps li::marker { color: #3a8065; font-weight: 700; }
 .mirror-note { display: flex; align-items: flex-start; gap: 8px; padding: 11px; border-radius: 9px; background: #f1f7f4; color: #5f776e; font-size: 9px; line-height: 1.6; }
 .mirror-note svg { flex: 0 0 auto; color: #347457; margin-top: 1px; }
+.mirror-devices-card { display: grid; gap: 14px; }
+.mirror-device-list { display: grid; gap: 8px; }
+.mirror-device-row { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid #e0e8e3; border-radius: 11px; background: #fbfdfc; }
+.mirror-device-row.offline { opacity: .68; }
+.mirror-device-copy { min-width: 0; display: grid; gap: 3px; }
+.mirror-device-copy strong { color: #25483d; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mirror-device-copy span { color: #74847d; font-size: 10px; }
+.mirror-device-copy small { color: #9aa7a2; font-size: 9px; }
+.mirror-device-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.mirror-device-actions .text-button { white-space: nowrap; }
+.mirror-device-empty { display: flex; align-items: center; gap: 9px; padding: 15px; border: 1px dashed #d3dfd8; border-radius: 10px; color: #82918a; font-size: 10px; line-height: 1.5; }
 .toggle-block { position: relative; z-index: 1; min-width: 74px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; color: #afc2bb; font-size: 10px; }
 .switch { width: 48px; height: 27px; padding: 3px; background: #899590; border: 0; border-radius: 30px; cursor: pointer; transition: .2s; }
 .switch i { display: block; width: 21px; height: 21px; background: white; border-radius: 50%; box-shadow: 0 2px 5px #0003; transition: .2s; }

@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
@@ -11,6 +12,21 @@ pub struct MirrorStatus {
     pub scrcpy_version: Option<String>,
     pub adb_available: bool,
     pub running: bool,
+}
+
+/// A currently connected Android device as reported by ADB.
+///
+/// `device_id` is intentionally derived from the device serial property rather than
+/// its IP address.  IPs and wireless ADB ports can change whenever the phone joins a
+/// different network, while the Android serial normally remains stable.
+#[derive(Debug, Clone)]
+pub struct MirrorCandidate {
+    pub device_id: String,
+    pub device_name: String,
+    pub serial: String,
+    pub address: Option<String>,
+    pub port: Option<u16>,
+    pub transport: String,
 }
 
 static SCRCPY_PROCESS: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
@@ -65,7 +81,13 @@ fn common_tool_paths(name: &str) -> Vec<PathBuf> {
         let executable = format!("{name}.exe");
         if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
             paths.push(
-                PathBuf::from(local_app_data)
+                PathBuf::from(&local_app_data)
+                    .join("scrcpy")
+                    .join(&executable),
+            );
+            paths.push(
+                PathBuf::from(&local_app_data)
+                    .join("Programs")
                     .join("scrcpy")
                     .join(&executable),
             );
@@ -92,6 +114,176 @@ fn tool_version(path: &str) -> Option<String> {
         .map(str::trim)
         .find(|line| !line.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn adb_path() -> Result<String, String> {
+    resolve_tool("adb").ok_or_else(|| {
+        "未找到 adb。请先安装 Android platform-tools，并将 adb 加入 PATH 后重启 LanClip。".into()
+    })
+}
+
+fn run_adb(path: &str, args: &[String]) -> Result<std::process::Output, String> {
+    Command::new(path)
+        .args(args)
+        .output()
+        .map_err(|error| format!("执行 adb 失败：{error}"))
+}
+
+fn split_endpoint(value: &str) -> Option<(String, u16)> {
+    let (address, port) = value.rsplit_once(':')?;
+    let port = port.parse::<u16>().ok()?;
+    if address.is_empty() {
+        return None;
+    }
+    Some((address.trim_matches(['[', ']']).to_string(), port))
+}
+
+fn mdns_endpoints(path: &str) -> Result<Vec<(String, u16)>, String> {
+    let output = run_adb(path, &["mdns".into(), "services".into()])?;
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut endpoints = Vec::new();
+    for line in text.lines() {
+        let parts: Vec<_> = line.split_whitespace().collect();
+        if parts.len() < 3 || !parts[1].contains("_adb") {
+            continue;
+        }
+        if let Some(endpoint) = split_endpoint(parts[2]) {
+            if !endpoints.contains(&endpoint) {
+                endpoints.push(endpoint);
+            }
+        }
+    }
+    Ok(endpoints)
+}
+
+fn connect_endpoint_with_path(path: &str, address: &str, port: u16) -> Result<(), String> {
+    if !valid_endpoint(address) {
+        return Err("安卓设备地址只能包含 IP、主机名和端口分隔符".into());
+    }
+    let endpoint = format!("{address}:{port}");
+    let output = run_adb(path, &["connect".into(), endpoint.clone()])?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let details = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(if details.is_empty() {
+            format!("无法连接安卓设备 {endpoint}")
+        } else {
+            format!("无法连接安卓设备 {endpoint}：{details}")
+        })
+    }
+}
+
+/// Connect to a manually entered ADB endpoint.  This is also used as a fallback
+/// before refreshing the remembered-device list.
+pub fn connect_endpoint(address: &str, port: u16) -> Result<(), String> {
+    let path = adb_path()?;
+    connect_endpoint_with_path(&path, address.trim(), port)
+}
+
+fn getprop(path: &str, serial: &str, property: &str) -> Option<String> {
+    let args = vec![
+        "-s".to_string(),
+        serial.to_string(),
+        "shell".to_string(),
+        "getprop".to_string(),
+        property.to_string(),
+    ];
+    let output = run_adb(path, &args).ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .trim_matches(|character| character == '\r' || character == '\n')
+        .to_string();
+    if value.is_empty() || matches!(value.to_ascii_lowercase().as_str(), "unknown" | "?" | "0") {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+fn parse_model(parts: &[&str]) -> Option<String> {
+    parts
+        .iter()
+        .find_map(|part| part.strip_prefix("model:"))
+        .filter(|model| !model.is_empty())
+        .map(|model| model.replace('_', " "))
+}
+
+fn parse_devices(path: &str, text: &str) -> Vec<MirrorCandidate> {
+    let mut devices: HashMap<String, MirrorCandidate> = HashMap::new();
+    for line in text.lines() {
+        let parts: Vec<_> = line.split_whitespace().collect();
+        if parts.len() < 2 || parts[1] != "device" {
+            continue;
+        }
+        let serial = parts[0].to_string();
+        let transport = if serial.contains(':') {
+            "wifi".to_string()
+        } else {
+            "usb".to_string()
+        };
+        let (address, port) = split_endpoint(&serial)
+            .map_or((None, None), |(address, port)| (Some(address), Some(port)));
+        let stable_id = getprop(path, &serial, "ro.serialno")
+            .or_else(|| getprop(path, &serial, "ro.boot.serialno"))
+            .unwrap_or_else(|| serial.clone());
+        let device_name = getprop(path, &serial, "ro.product.model")
+            .or_else(|| parse_model(&parts))
+            .unwrap_or_else(|| "安卓设备".to_string());
+        let candidate = MirrorCandidate {
+            device_id: stable_id.clone(),
+            device_name,
+            serial,
+            address,
+            port,
+            transport: transport.clone(),
+        };
+
+        // If a phone is connected over USB and Wi-Fi at the same time, expose it
+        // once. Prefer the Wi-Fi transport so remembered devices keep working after
+        // the cable is removed, while USB remains the fallback when Wi-Fi is absent.
+        match devices.get(&stable_id) {
+            Some(existing) if existing.transport == "wifi" && transport == "usb" => {}
+            _ => {
+                devices.insert(stable_id, candidate);
+            }
+        }
+    }
+    let mut devices: Vec<_> = devices.into_values().collect();
+    devices.sort_by(|a, b| a.device_name.cmp(&b.device_name));
+    devices
+}
+
+/// Discover connected ADB devices and refresh paired wireless endpoints through
+/// Android's ADB mDNS services.  Pairing itself remains a one-time Android 11+
+/// step (`adb pair`); once paired, mDNS advertises the changing connection port.
+pub fn discover_devices() -> Result<Vec<MirrorCandidate>, String> {
+    let path = adb_path()?;
+    if let Ok(endpoints) = mdns_endpoints(&path) {
+        for (address, port) in endpoints {
+            let _ = connect_endpoint_with_path(&path, &address, port);
+        }
+    }
+    let output = run_adb(&path, &["devices".into(), "-l".into()])?;
+    if !output.status.success() {
+        let details = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if details.is_empty() {
+            "读取 adb 设备列表失败".into()
+        } else {
+            format!("读取 adb 设备列表失败：{details}")
+        });
+    }
+    Ok(parse_devices(
+        &path,
+        &String::from_utf8_lossy(&output.stdout),
+    ))
 }
 
 fn running() -> Result<bool, String> {
@@ -133,7 +325,8 @@ fn valid_endpoint(value: &str) -> bool {
             .all(|character| character.is_ascii_alphanumeric() || ".:-_[]".contains(character))
 }
 
-pub fn start(
+fn start_process(
+    target_serial: Option<&str>,
     address: Option<String>,
     port: Option<u16>,
     control: bool,
@@ -174,7 +367,9 @@ pub fn start(
             args.push("--keyboard=uhid".to_string());
         }
     }
-    if let Some(address) = address
+    if let Some(serial) = target_serial {
+        args.push(format!("--serial={serial}"));
+    } else if let Some(address) = address
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
     {
@@ -197,6 +392,23 @@ pub fn start(
         .map_err(|error| format!("启动 scrcpy 失败：{error}"))?;
     *slot = Some(child);
     Ok(())
+}
+
+pub fn start(
+    address: Option<String>,
+    port: Option<u16>,
+    control: bool,
+    mouse_mode: String,
+) -> Result<(), String> {
+    start_process(None, address, port, control, mouse_mode)
+}
+
+pub fn start_selected(
+    candidate: &MirrorCandidate,
+    control: bool,
+    mouse_mode: String,
+) -> Result<(), String> {
+    start_process(Some(&candidate.serial), None, None, control, mouse_mode)
 }
 
 pub fn stop() -> Result<(), String> {

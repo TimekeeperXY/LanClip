@@ -53,6 +53,16 @@ type MirrorStatus = {
   adbAvailable: boolean;
   running: boolean;
 };
+type MirrorDevice = {
+  deviceId: string;
+  deviceName: string;
+  online: boolean;
+  address?: string;
+  port?: number;
+  transport: string;
+  bound: boolean;
+  lastSeen: number;
+};
 type MirrorMouseMode = "sdk" | "uhid";
 
 const APP_VERSION = "0.2.3";
@@ -104,6 +114,7 @@ function App() {
   const [error, setError] = useState<string>();
   const [systemStatus, setSystemStatus] = useState<SystemStatus>();
   const [mirrorStatus, setMirrorStatus] = useState<MirrorStatus>();
+  const [mirrorDevices, setMirrorDevices] = useState<MirrorDevice[]>([]);
   const [mirrorAddress, setMirrorAddress] = useState("");
   const [mirrorPort, setMirrorPort] = useState("5555");
   const [mirrorControl, setMirrorControl] = useState(true);
@@ -136,6 +147,16 @@ function App() {
     }
   }, []);
 
+  const refreshMirrorDevices = useCallback(async () => {
+    if (!isTauri()) return;
+    try {
+      setMirrorDevices(await invoke<MirrorDevice[]>("get_mirror_devices"));
+    } catch {
+      // ADB may be unavailable while scrcpy is being installed. Keep the page
+      // usable and let the status card explain the missing dependency.
+    }
+  }, []);
+
   useEffect(() => {
     refresh();
     refreshSystem();
@@ -143,6 +164,13 @@ function App() {
     const timer = window.setInterval(() => { refresh(); refreshMirror(); }, 1200);
     return () => window.clearInterval(timer);
   }, [refresh, refreshSystem, refreshMirror]);
+
+  useEffect(() => {
+    if (page !== "mirror") return;
+    refreshMirrorDevices();
+    const timer = window.setInterval(refreshMirrorDevices, 4000);
+    return () => window.clearInterval(timer);
+  }, [page, refreshMirrorDevices]);
 
   useEffect(() => setDeviceName(snapshot.deviceName), [snapshot.deviceName]);
   useEffect(() => {
@@ -162,6 +190,7 @@ function App() {
       await refresh();
       if (command === "set_autostart" || command === "repair_firewall") await refreshSystem();
       if (command === "start_mirror" || command === "stop_mirror") await refreshMirror();
+      if (command === "start_mirror" || command === "stop_mirror") await refreshMirrorDevices();
     } catch (err) {
       setError(String(err));
       throw err;
@@ -175,7 +204,7 @@ function App() {
 
   const startPairing = () => run("pairing", "start_pairing").catch(() => undefined);
   const toggleSync = () => run("sync", "set_sync_enabled", { enabled: !snapshot.syncEnabled }).catch(() => undefined);
-  const startMirror = () => run("mirror-start", "start_mirror", { address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl, mouseMode: mirrorMouseMode }).catch(() => undefined);
+  const startMirror = (deviceId?: string) => run("mirror-start", "start_mirror", { deviceId: deviceId ?? null, address: mirrorAddress.trim() || null, port: Number(mirrorPort) || 5555, control: mirrorControl, mouseMode: mirrorMouseMode }).catch(() => undefined);
   const stopMirror = () => run("mirror-stop", "stop_mirror").catch(() => undefined);
 
   const submitPair = async (event: FormEvent) => {
@@ -235,7 +264,7 @@ function App() {
 
         {page === "overview" && <Overview snapshot={snapshot} onlineCount={onlineCount} busy={busy} onToggle={toggleSync} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
         {page === "devices" && <DevicesPage snapshot={snapshot} busy={busy} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
-        {page === "mirror" && <MirrorPage status={mirrorStatus} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} onStart={startMirror} onStop={stopMirror} />}
+        {page === "mirror" && <MirrorPage status={mirrorStatus} devices={mirrorDevices} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} onRefreshDevices={refreshMirrorDevices} onStart={startMirror} onStop={stopMirror} onUnbind={(id) => run(`mirror-unbind-${id}`, "unbind_mirror_device", { deviceId: id }).then(refreshMirrorDevices).catch(() => undefined)} />}
         {page === "activity" && <ActivityPage transfers={snapshot.transfers} onClear={() => run("clear", "clear_history").catch(() => undefined)}/>}
         {page === "settings" && <SettingsPage snapshot={snapshot} systemStatus={systemStatus} busy={busy} onToggle={toggleSync} onRename={() => setRenameOpen(true)} onAutostart={() => run("autostart", "set_autostart", { enabled: !systemStatus?.autostartEnabled }).catch(() => undefined)} onFirewall={() => run("firewall", "repair_firewall").catch(() => undefined)}/>}
       </main>
@@ -277,8 +306,9 @@ function PeerCard({ peer, busy, onUnpair }: { peer: Peer; busy: boolean; onUnpai
   return <article className="peer-card"><div className="peer-top"><span className="device-icon large"><Icon name="monitor" size={24}/><i className={peer.online ? "online" : ""}/></span><button className="icon-button" onClick={() => setMenu(!menu)}><Icon name="more"/>{menu && <span className="popover" onClick={(e) => {e.stopPropagation(); onUnpair();}}>{busy ? "正在解除…" : "解除绑定"}</span>}</button></div><h3>{peer.deviceName}</h3><p>{peer.online ? peer.address : "当前离线"}</p><div className="peer-state"><span className={peer.online ? "online" : ""}><i/>{peer.online ? "在线 · 自动同步" : "离线"}</span><Icon name="lock" size={15}/></div></article>;
 }
 
-function MirrorPage({ status, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, onStart, onStop }: {
+function MirrorPage({ status, devices, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, onRefreshDevices, onStart, onStop, onUnbind }: {
   status?: MirrorStatus;
+  devices: MirrorDevice[];
   busy?: string;
   address: string;
   setAddress: (value: string) => void;
@@ -288,8 +318,10 @@ function MirrorPage({ status, busy, address, setAddress, port, setPort, control,
   setControl: (value: boolean) => void;
   mouseMode: MirrorMouseMode;
   setMouseMode: (value: MirrorMouseMode) => void;
-  onStart: () => void;
+  onRefreshDevices: () => void;
+  onStart: (deviceId?: string) => void;
   onStop: () => void;
+  onUnbind: (deviceId: string) => void;
 }) {
   const ready = !!status?.available;
   const running = !!status?.running;
@@ -302,16 +334,25 @@ function MirrorPage({ status, busy, address, setAddress, port, setPort, control,
 
     {!ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 scrcpy</strong><p>请先安装官方 scrcpy，并确保命令可以在 PowerShell 或终端中直接运行，然后重启 LanClip。</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看官方安装说明 ↗</a></div></section>}
 
+    <section className="settings-card mirror-devices-card">
+      <div className="section-heading"><div><h2>已记住的安卓设备</h2><p>首次成功投屏后自动绑定；下次在同一局域网中会通过 ADB/mDNS 自动找回</p></div><button className="secondary-button" onClick={onRefreshDevices} disabled={busy === "mirror-start"}>刷新设备</button></div>
+      {devices.length ? <div className="mirror-device-list">{devices.map((device) => <div className={`mirror-device-row ${device.online ? "online" : "offline"}`} key={device.deviceId}>
+        <span className="device-icon large"><Icon name="phone" size={21}/><i className={device.online ? "online" : ""}/></span>
+        <div className="mirror-device-copy"><strong>{device.deviceName}</strong><span>{device.transport === "wifi" ? "无线 ADB" : "USB"}{device.address ? ` · ${device.address}${device.port ? `:${device.port}` : ""}` : ""}</span><small>{device.bound ? "已绑定 · " : "附近设备 · 投屏后自动绑定 · "}{device.online ? "在线" : "当前离线"}</small></div>
+        <div className="mirror-device-actions"><button className="primary-button compact" onClick={() => onStart(device.deviceId)} disabled={!ready || !device.online || running || busy === "mirror-start"}>{busy === "mirror-start" ? "启动中…" : "一键投屏"}</button>{device.bound && <button className="text-button muted" onClick={() => onUnbind(device.deviceId)} disabled={busy === `mirror-unbind-${device.deviceId}`}>{busy === `mirror-unbind-${device.deviceId}` ? "解除中…" : "解除绑定"}</button>}</div>
+      </div>)}</div> : <div className="mirror-device-empty"><Icon name="phone" size={20}/><span>暂未发现 ADB 设备。请连接 USB，或完成 Android 11+ 无线调试配对。</span></div>}
+    </section>
+
     <div className="mirror-grid">
       <section className="settings-card mirror-card">
-        <div className="section-heading"><div><h2>连接安卓设备</h2><p>地址留空时使用已授权的 USB 设备</p></div>{status?.adbAvailable && <span className="health-badge ok"><i/>ADB 可用</span>}</div>
+        <div className="section-heading"><div><h2>手动连接安卓设备</h2><p>首次连接或设备未被 mDNS 发现时使用 IP/端口</p></div>{status?.adbAvailable && <span className="health-badge ok"><i/>ADB 可用</span>}</div>
         <div className="mirror-form">
           <label className="mirror-field"><span>安卓设备 IP（可选）</span><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="例如 192.168.1.25" disabled={running}/></label>
           <label className="mirror-field port-field"><span>端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
         </div>
         <label className="mirror-control"><input type="checkbox" checked={control} onChange={(event) => setControl(event.target.checked)} disabled={running}/><span><strong>允许鼠标键盘控制</strong><small>关闭后仅投屏查看，不会向手机发送操作</small></span></label>
         {control && <label className="mirror-field mirror-mode-field"><span>输入控制模式</span><select value={mouseMode} onChange={(event) => setMouseMode(event.target.value as MirrorMouseMode)} disabled={running}><option value="sdk">标准触控（推荐）</option><option value="uhid">UHID 兼容模式（小米设备可尝试）</option></select><small>{mouseMode === "uhid" ? "鼠标会被捕获；按 Alt 或 Super 可释放鼠标。" : "如果小米/红米设备无法点击，请开启 USB 调试（安全设置）或改用 UHID。"}</small></label>}
-        <div className="mirror-actions"><button className="primary-button" onClick={onStart} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
+        <div className="mirror-actions"><button className="primary-button" onClick={() => onStart()} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
         {status?.scrcpyVersion && <p className="mirror-version">检测到 {status.scrcpyVersion}</p>}
       </section>
 
