@@ -49,6 +49,14 @@ fn command_name(name: &str) -> &'static str {
 }
 
 fn resolve_tool(name: &str) -> Option<String> {
+    if let Some(path) = bundled_tool_paths(name)
+        .into_iter()
+        .find(|path| path.is_file())
+        .map(|path| path.to_string_lossy().into_owned())
+    {
+        return Some(path);
+    }
+
     if let Ok(output) = Command::new(command_name(name)).arg(name).output() {
         if output.status.success() {
             if let Some(path) = String::from_utf8_lossy(&output.stdout)
@@ -66,6 +74,47 @@ fn resolve_tool(name: &str) -> Option<String> {
         .into_iter()
         .find(|path| path.is_file())
         .map(|path| path.to_string_lossy().into_owned())
+}
+
+fn bundled_resources_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Ok(exe) = std::env::current_exe() {
+        #[cfg(target_os = "macos")]
+        if let Some(contents_dir) = exe
+            .parent()
+            .and_then(|macos_dir| macos_dir.parent())
+            .filter(|path| path.ends_with("Contents"))
+        {
+            let resources_dir = contents_dir.join("Resources");
+            dirs.push(resources_dir.join("resources"));
+            dirs.push(resources_dir);
+        }
+        #[cfg(target_os = "windows")]
+        if let Some(exe_dir) = exe.parent() {
+            dirs.push(exe_dir.join("resources"));
+        }
+    }
+    dirs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources"));
+    dirs
+}
+
+fn bundled_tool_paths(name: &str) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    #[cfg(target_os = "macos")]
+    {
+        let relative = match name {
+            "adb" => Some("android-tools/macos-aarch64/platform-tools/adb"),
+            "scrcpy" => Some("android-tools/macos-aarch64/scrcpy/scrcpy"),
+            "scrcpy-server" => Some("android-tools/macos-aarch64/scrcpy/scrcpy-server"),
+            _ => None,
+        };
+        if let Some(relative) = relative {
+            for resources_dir in bundled_resources_dirs() {
+                paths.push(resources_dir.join(relative));
+            }
+        }
+    }
+    paths
 }
 
 fn common_tool_paths(name: &str) -> Vec<PathBuf> {
@@ -104,7 +153,9 @@ fn common_tool_paths(name: &str) -> Vec<PathBuf> {
 }
 
 fn tool_version(path: &str) -> Option<String> {
-    let output = Command::new(path).arg("--version").output().ok()?;
+    let mut command = Command::new(path);
+    add_android_tool_env(&mut command);
+    let output = command.arg("--version").output().ok()?;
     let text = if output.stdout.is_empty() {
         String::from_utf8_lossy(&output.stderr).into_owned()
     } else {
@@ -123,10 +174,24 @@ fn adb_path() -> Result<String, String> {
 }
 
 fn run_adb(path: &str, args: &[String]) -> Result<std::process::Output, String> {
-    Command::new(path)
+    let mut command = Command::new(path);
+    add_android_tool_env(&mut command);
+    command
         .args(args)
         .output()
         .map_err(|error| format!("执行 adb 失败：{error}"))
+}
+
+fn add_android_tool_env(command: &mut Command) {
+    if let Some(adb) = resolve_tool("adb") {
+        command.env("ADB", adb);
+    }
+    if let Some(server) = bundled_tool_paths("scrcpy-server")
+        .into_iter()
+        .find(|path| path.is_file())
+    {
+        command.env("SCRCPY_SERVER_PATH", server);
+    }
 }
 
 fn split_endpoint(value: &str) -> Option<(String, u16)> {
@@ -401,7 +466,9 @@ fn start_process(
         args.push("--select-usb".to_string());
     }
 
-    let child = Command::new(path)
+    let mut command = Command::new(path);
+    add_android_tool_env(&mut command);
+    let child = command
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

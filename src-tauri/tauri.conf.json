@@ -27,6 +27,9 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "resources": [
+      "resources/android-tools"
+    ],
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"

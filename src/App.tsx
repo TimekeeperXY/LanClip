@@ -336,47 +336,84 @@ function MirrorPage({ platform, status, devices, busy, address, setAddress, port
   const ready = !!status?.available;
   const running = !!status?.running;
   const isMac = platform === "macos";
+  const [wirelessOpen, setWirelessOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("lanclip.mirrorGuideSeen") !== "1";
+  });
+  const closeGuide = () => {
+    window.localStorage.setItem("lanclip.mirrorGuideSeen", "1");
+    setGuideOpen(false);
+  };
+
   return <div className="page-stack mirror-page">
+    {guideOpen && <MirrorGuide onClose={closeGuide}/>}
     <section className={`mirror-hero ${running ? "running" : ""}`}>
       <div className="mirror-hero-icon"><Icon name="phone" size={30}/></div>
       <div><span className="status-label">Windows / macOS 桌面端</span><h2>把安卓屏幕带到电脑上</h2><p>LanClip 负责设备记忆和会话管理，scrcpy 负责低延迟投屏、音频转发与鼠标键盘控制。</p></div>
       <span className={`mirror-status ${running ? "on" : ""}`}><i/>{running ? "投屏中" : "未启动"}</span>
     </section>
 
-    {!ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 scrcpy</strong><p>{isMac ? "请先执行 brew install scrcpy，并确保 adb 可用，然后完全退出并重新打开 LanClip。" : "请先安装官方 scrcpy，并确保命令可以在 PowerShell 或终端中直接运行，然后重启 LanClip。"}</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看官方安装说明 ↗</a></div></section>}
-    {ready && !status?.adbAvailable && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 adb</strong><p>{isMac ? "请执行 brew install --cask android-platform-tools，然后完全退出并重新打开 LanClip。" : "请安装 Android platform-tools 并将 adb 加入 PATH，然后完全退出并重新打开 LanClip。"}</p><a href="https://developer.android.com/tools/adb" target="_blank" rel="noreferrer">查看 ADB 安装说明 ↗</a></div></section>}
+    {status && !ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>投屏组件不可用</strong><p>{isMac ? "安装包会内置 adb 与 scrcpy。如果这里仍提示不可用，请重新安装最新版 LanClip。" : "请安装包含 scrcpy 的最新版 LanClip，或把官方 scrcpy 加入系统 PATH 后重启。"}</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看 scrcpy 官方说明</a></div></section>}
+    {ready && !status?.adbAvailable && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>ADB 不可用</strong><p>{isMac ? "安装包会内置 Android platform-tools。如果这里仍提示不可用，请重新安装最新版 LanClip。" : "请安装包含 adb 的最新版 LanClip，或把 Android platform-tools 加入系统 PATH 后重启。"}</p><a href="https://developer.android.com/tools/adb" target="_blank" rel="noreferrer">查看 ADB 官方说明</a></div></section>}
 
     <section className="settings-card mirror-devices-card">
-      <div className="section-heading"><div><h2>已记住的安卓设备</h2><p>首次成功投屏后自动绑定；下次在同一局域网中会通过 ADB/mDNS 自动找回</p></div><button className="secondary-button" onClick={onRefreshDevices} disabled={busy === "mirror-start"}>刷新设备</button></div>
+      <div className="section-heading"><div><h2>已发现的安卓设备</h2><p>USB 调试授权后会自动出现；首次成功投屏后会记住这台设备</p></div><div className="section-actions"><button className="secondary-button" onClick={() => setGuideOpen(true)}>查看引导</button><button className="secondary-button" onClick={onRefreshDevices} disabled={busy === "mirror-start"}>刷新设备</button></div></div>
       {devices.length ? <div className="mirror-device-list">{devices.map((device) => <div className={`mirror-device-row ${device.online ? "online" : "offline"}`} key={device.deviceId}>
         <span className="device-icon large"><Icon name="phone" size={21}/><i className={device.online ? "online" : ""}/></span>
         <div className="mirror-device-copy"><strong>{device.deviceName}</strong><span>{device.transport === "wifi" ? "无线 ADB" : "USB"}{device.address ? ` · ${device.address}${device.port ? `:${device.port}` : ""}` : ""}</span><small>{device.bound ? "已绑定 · " : "附近设备 · 投屏后自动绑定 · "}{device.online ? "在线" : "当前离线"}</small></div>
         <div className="mirror-device-actions"><button className="primary-button compact" onClick={() => onStart(device.deviceId)} disabled={!ready || !device.online || running || busy === "mirror-start"}>{busy === "mirror-start" ? "启动中…" : "一键投屏"}</button>{device.bound && <button className="text-button muted" onClick={() => onUnbind(device.deviceId)} disabled={busy === `mirror-unbind-${device.deviceId}`}>{busy === `mirror-unbind-${device.deviceId}` ? "解除中…" : "解除绑定"}</button>}</div>
-      </div>)}</div> : <div className="mirror-device-empty"><Icon name="phone" size={20}/><span>暂未发现 ADB 设备。请连接 USB，或完成 Android 11+ 无线调试配对。</span></div>}
+      </div>)}</div> : <div className="mirror-device-empty"><Icon name="phone" size={20}/><span>暂未发现 ADB 设备。请用 USB 连接手机，开启 USB 调试，并在手机上允许这台电脑调试。</span></div>}
     </section>
 
     <div className="mirror-grid">
       <section className="settings-card mirror-card">
-        <div className="section-heading"><div><h2>手动连接安卓设备</h2><p>首次连接或设备未被 mDNS 发现时使用 IP/端口</p></div>{status?.adbAvailable && <span className="health-badge ok"><i/>ADB 可用</span>}</div>
-        <div className="mirror-form">
-          <label className="mirror-field"><span>安卓设备 IP（可选）</span><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="例如 192.168.1.25" disabled={running}/></label>
-          <label className="mirror-field port-field"><span>端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
+        <div className="section-heading"><div><h2>投屏设置</h2><p>默认使用 USB 授权设备；无需填写 IP 和端口</p></div>{status?.adbAvailable && <span className="health-badge ok"><i/>ADB 可用</span>}</div>
+        <div className="mirror-usb-start">
+          <span><Icon name="phone" size={20}/></span>
+          <div><strong>USB 投屏</strong><p>连接手机并允许 USB 调试后，直接点击开始投屏。若上方已出现设备，也可以点“一键投屏”。</p></div>
         </div>
         <label className="mirror-control"><input type="checkbox" checked={control} onChange={(event) => setControl(event.target.checked)} disabled={running}/><span><strong>允许鼠标键盘控制</strong><small>关闭后仅投屏查看，不会向手机发送操作</small></span></label>
         <label className="mirror-control"><input type="checkbox" checked={audio} onChange={(event) => setAudio(event.target.checked)} disabled={running}/><span><strong>电脑播放安卓音频</strong><small>Android 11+ 会将声音转发到电脑，并关闭手机扬声器播放</small></span></label>
         <label className="mirror-control"><input type="checkbox" checked={screenOff} onChange={(event) => setScreenOff(event.target.checked)} disabled={running}/><span><strong>投屏后关闭手机屏幕</strong><small>保持投屏与控制，但关闭手机显示屏；这不是 Android 锁屏</small></span></label>
         {control && <label className="mirror-field mirror-mode-field"><span>输入控制模式</span><select value={mouseMode} onChange={(event) => setMouseMode(event.target.value as MirrorMouseMode)} disabled={running}><option value="sdk">标准触控（推荐）</option><option value="uhid">UHID 兼容模式（小米设备可尝试）</option></select><small>{mouseMode === "uhid" ? "鼠标会被捕获；按 Alt 或 Super 可释放鼠标。" : "如果小米/红米设备无法点击，请开启 USB 调试（安全设置）或改用 UHID。"}</small></label>}
         <label className="mirror-field mirror-mode-field"><span>投屏帧率上限</span><select value={maxFps} onChange={(event) => setMaxFps(Number(event.target.value))} disabled={running}><option value={30}>30 FPS · 稳定省资源</option><option value={60}>60 FPS · 推荐</option><option value={90}>90 FPS</option><option value={120}>120 FPS</option><option value={165}>165 FPS · 设备支持时</option></select><small>这是视频采集上限，不等于实际帧率；实际效果取决于手机刷新率、编码器和 USB/无线带宽。</small></label>
+        <button className="text-button mirror-advanced-toggle" onClick={() => setWirelessOpen(!wirelessOpen)}>{wirelessOpen ? "收起无线/手动连接" : "无线调试或手动 IP 连接"}</button>
+        {wirelessOpen && <div className="mirror-wireless-panel">
+          <div className="mirror-form">
+            <label className="mirror-field"><span>安卓设备 IP</span><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="例如 192.168.1.25" disabled={running}/></label>
+            <label className="mirror-field port-field"><span>连接端口</span><input value={port} onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="5555" disabled={running}/></label>
+          </div>
+          <p>仅在 Android 11+ 无线调试已配对、但设备没有自动出现在列表中时使用。这里填写的是“连接端口”，不是“配对端口”。</p>
+        </div>}
         <div className="mirror-actions"><button className="primary-button" onClick={() => onStart()} disabled={!ready || running || busy === "mirror-start"}><Icon name="phone" size={17}/>{busy === "mirror-start" ? "正在启动…" : "开始投屏"}</button><button className="secondary-button" onClick={onStop} disabled={!running || busy === "mirror-stop"}>{busy === "mirror-stop" ? "正在停止…" : "停止投屏"}</button></div>
         {status?.scrcpyVersion && <p className="mirror-version">检测到 {status.scrcpyVersion}</p>}
       </section>
 
       <section className="settings-card mirror-card">
         <h2>首次连接步骤</h2>
-        <ol className="mirror-steps"><li>手机与电脑连接同一个局域网。</li><li>首次使用先打开开发者选项和 USB 调试；手机弹出授权提示时选择允许。</li><li>小米/红米/POCO 还要开启“USB 调试（安全设置）/允许通过 USB 调试模拟输入”，开启后重启手机。</li><li>Android 11+ 无线调试需要先完成“配对端口”配对，再用“连接端口”执行 ADB 连接，最后把连接端口填入上方。</li><li>点击“开始投屏”，scrcpy 会打开独立的安卓画面窗口。</li></ol>
+        <ol className="mirror-steps"><li>在安卓手机打开开发者选项和 USB 调试。</li><li>用 USB 线连接电脑，手机弹出授权提示时选择允许。</li><li>回到本页，确认上方设备列表出现手机，或直接点击“开始投屏”。</li><li>小米/红米/POCO 若需要鼠标键盘控制，开启“USB 调试（安全设置）/允许通过 USB 调试模拟输入”，开启后重启手机。</li><li>无线调试是进阶用法；只有 USB 不方便或已经完成无线 ADB 配对时，才需要展开手动 IP/端口。</li></ol>
         <div className="mirror-note"><Icon name="shield" size={16}/><span>当前版本不安装安卓 App，也不会把控制权限授予未授权的设备。投屏窗口由 scrcpy 管理。</span></div>
       </section>
     </div>
+  </div>;
+}
+
+function MirrorGuide({ onClose }: { onClose: () => void }) {
+  return <div className="modal-backdrop">
+    <section className="modal mirror-guide" role="dialog" aria-modal="true" aria-labelledby="mirror-guide-title">
+      <button className="modal-close" onClick={onClose} aria-label="关闭引导"><Icon name="close" size={18}/></button>
+      <div className="modal-icon"><Icon name="phone" size={26}/></div>
+      <h2 id="mirror-guide-title">首次安卓投屏</h2>
+      <p>LanClip 已内置 adb 和 scrcpy。大多数同事只需要插上 USB、允许调试，然后点击开始投屏。</p>
+      <div className="guide-step-list">
+        <div><b>1</b><span><strong>打开 USB 调试</strong><small>手机进入开发者选项，开启 USB 调试。</small></span></div>
+        <div><b>2</b><span><strong>连接并授权</strong><small>用 USB 连接电脑，手机弹出授权时选择允许。</small></span></div>
+        <div><b>3</b><span><strong>开始投屏</strong><small>设备出现后点一键投屏；也可以直接点开始投屏。</small></span></div>
+        <div><b>4</b><span><strong>控制权限</strong><small>小米/红米/POCO 要控制点击，请额外开启 USB 调试（安全设置）并重启。</small></span></div>
+      </div>
+      <button className="primary-button modal-submit" onClick={onClose}>知道了</button>
+    </section>
   </div>;
 }
 
