@@ -267,7 +267,7 @@ function App() {
 
         {page === "overview" && <Overview snapshot={snapshot} onlineCount={onlineCount} busy={busy} onToggle={toggleSync} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
         {page === "devices" && <DevicesPage snapshot={snapshot} busy={busy} onStartPairing={startPairing} onPair={setPairTarget} onUnpair={(id) => run(`unpair-${id}`, "unpair_device", { deviceId: id }).catch(() => undefined)} />}
-        {page === "mirror" && <MirrorPage status={mirrorStatus} devices={mirrorDevices} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} maxFps={mirrorMaxFps} setMaxFps={setMirrorMaxFps} audio={mirrorAudio} setAudio={setMirrorAudio} screenOff={mirrorScreenOff} setScreenOff={setMirrorScreenOff} onRefreshDevices={refreshMirrorDevices} onStart={startMirror} onStop={stopMirror} onUnbind={(id) => run(`mirror-unbind-${id}`, "unbind_mirror_device", { deviceId: id }).then(refreshMirrorDevices).catch(() => undefined)} />}
+        {page === "mirror" && <MirrorPage platform={systemStatus?.platform} status={mirrorStatus} devices={mirrorDevices} busy={busy} address={mirrorAddress} setAddress={setMirrorAddress} port={mirrorPort} setPort={setMirrorPort} control={mirrorControl} setControl={setMirrorControl} mouseMode={mirrorMouseMode} setMouseMode={setMirrorMouseMode} maxFps={mirrorMaxFps} setMaxFps={setMirrorMaxFps} audio={mirrorAudio} setAudio={setMirrorAudio} screenOff={mirrorScreenOff} setScreenOff={setMirrorScreenOff} onRefreshDevices={refreshMirrorDevices} onStart={startMirror} onStop={stopMirror} onUnbind={(id) => run(`mirror-unbind-${id}`, "unbind_mirror_device", { deviceId: id }).then(refreshMirrorDevices).catch(() => undefined)} />}
         {page === "activity" && <ActivityPage transfers={snapshot.transfers} onClear={() => run("clear", "clear_history").catch(() => undefined)}/>}
         {page === "settings" && <SettingsPage snapshot={snapshot} systemStatus={systemStatus} busy={busy} onToggle={toggleSync} onRename={() => setRenameOpen(true)} onAutostart={() => run("autostart", "set_autostart", { enabled: !systemStatus?.autostartEnabled }).catch(() => undefined)} onFirewall={() => run("firewall", "repair_firewall").catch(() => undefined)}/>}
       </main>
@@ -309,7 +309,8 @@ function PeerCard({ peer, busy, onUnpair }: { peer: Peer; busy: boolean; onUnpai
   return <article className="peer-card"><div className="peer-top"><span className="device-icon large"><Icon name="monitor" size={24}/><i className={peer.online ? "online" : ""}/></span><button className="icon-button" onClick={() => setMenu(!menu)}><Icon name="more"/>{menu && <span className="popover" onClick={(e) => {e.stopPropagation(); onUnpair();}}>{busy ? "正在解除…" : "解除绑定"}</span>}</button></div><h3>{peer.deviceName}</h3><p>{peer.online ? peer.address : "当前离线"}</p><div className="peer-state"><span className={peer.online ? "online" : ""}><i/>{peer.online ? "在线 · 自动同步" : "离线"}</span><Icon name="lock" size={15}/></div></article>;
 }
 
-function MirrorPage({ status, devices, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, maxFps, setMaxFps, audio, setAudio, screenOff, setScreenOff, onRefreshDevices, onStart, onStop, onUnbind }: {
+function MirrorPage({ platform, status, devices, busy, address, setAddress, port, setPort, control, setControl, mouseMode, setMouseMode, maxFps, setMaxFps, audio, setAudio, screenOff, setScreenOff, onRefreshDevices, onStart, onStop, onUnbind }: {
+  platform?: SystemStatus["platform"];
   status?: MirrorStatus;
   devices: MirrorDevice[];
   busy?: string;
@@ -334,14 +335,16 @@ function MirrorPage({ status, devices, busy, address, setAddress, port, setPort,
 }) {
   const ready = !!status?.available;
   const running = !!status?.running;
+  const isMac = platform === "macos";
   return <div className="page-stack mirror-page">
     <section className={`mirror-hero ${running ? "running" : ""}`}>
       <div className="mirror-hero-icon"><Icon name="phone" size={30}/></div>
-      <div><span className="status-label">桌面端实验版</span><h2>把安卓屏幕带到电脑上</h2><p>LanClip 负责局域网入口和会话管理，scrcpy 负责低延迟投屏与鼠标键盘控制。</p></div>
+      <div><span className="status-label">Windows / macOS 桌面端</span><h2>把安卓屏幕带到电脑上</h2><p>LanClip 负责设备记忆和会话管理，scrcpy 负责低延迟投屏、音频转发与鼠标键盘控制。</p></div>
       <span className={`mirror-status ${running ? "on" : ""}`}><i/>{running ? "投屏中" : "未启动"}</span>
     </section>
 
-    {!ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 scrcpy</strong><p>请先安装官方 scrcpy，并确保命令可以在 PowerShell 或终端中直接运行，然后重启 LanClip。</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看官方安装说明 ↗</a></div></section>}
+    {!ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 scrcpy</strong><p>{isMac ? "请先执行 brew install scrcpy，并确保 adb 可用，然后完全退出并重新打开 LanClip。" : "请先安装官方 scrcpy，并确保命令可以在 PowerShell 或终端中直接运行，然后重启 LanClip。"}</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看官方安装说明 ↗</a></div></section>}
+    {ready && !status?.adbAvailable && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>尚未找到 adb</strong><p>{isMac ? "请执行 brew install --cask android-platform-tools，然后完全退出并重新打开 LanClip。" : "请安装 Android platform-tools 并将 adb 加入 PATH，然后完全退出并重新打开 LanClip。"}</p><a href="https://developer.android.com/tools/adb" target="_blank" rel="noreferrer">查看 ADB 安装说明 ↗</a></div></section>}
 
     <section className="settings-card mirror-devices-card">
       <div className="section-heading"><div><h2>已记住的安卓设备</h2><p>首次成功投屏后自动绑定；下次在同一局域网中会通过 ADB/mDNS 自动找回</p></div><button className="secondary-button" onClick={onRefreshDevices} disabled={busy === "mirror-start"}>刷新设备</button></div>

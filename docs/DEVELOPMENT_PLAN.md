@@ -79,13 +79,16 @@
 
 ## 第五阶段：安卓投屏（独立实验分支）
 
-状态：`feature/android-mirroring-scrcpy` 开发中，暂不开发原生安卓配套 App。
+状态：`feature/android-mirroring-scrcpy` 开发中，Windows / macOS 桌面端均已接入，暂不开发原生安卓配套 App。
 
 - [x] 桌面端增加安卓投屏入口
 - [x] 检测本机 `scrcpy` / `adb` 安装状态
 - [x] 支持 USB 授权设备投屏
 - [x] 支持填写 IP 和端口尝试局域网投屏
 - [x] 支持仅查看 / 允许鼠标键盘控制
+- [x] 支持 Windows / macOS 的 scrcpy 与 ADB 路径检测
+- [x] 支持音频转发、帧率选择和投屏后关闭安卓显示屏
+- [x] 支持 ADB 设备记忆与 mDNS 自动发现
 - [ ] 真机验证 Windows + Android USB 投屏
 - [ ] 真机验证 Windows + Android 无线投屏
 - [ ] 真机验证 macOS + Android 投屏
