@@ -92,6 +92,7 @@ fn bundled_resources_dirs() -> Vec<PathBuf> {
         #[cfg(target_os = "windows")]
         if let Some(exe_dir) = exe.parent() {
             dirs.push(exe_dir.join("resources"));
+            dirs.push(exe_dir.to_path_buf());
         }
     }
     dirs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources"));
@@ -103,9 +104,34 @@ fn bundled_tool_paths(name: &str) -> Vec<PathBuf> {
     #[cfg(target_os = "macos")]
     {
         let relative = match name {
+            // The Android platform-tools `adb` binary is a universal macOS binary,
+            // so the existing aarch64 copy also works on Intel Macs. scrcpy itself
+            // is architecture-specific and is selected below.
             "adb" => Some("android-tools/macos-aarch64/platform-tools/adb"),
-            "scrcpy" => Some("android-tools/macos-aarch64/scrcpy/scrcpy"),
-            "scrcpy-server" => Some("android-tools/macos-aarch64/scrcpy/scrcpy-server"),
+            "scrcpy-server" => Some(if cfg!(target_arch = "x86_64") {
+                "android-tools/macos-x86_64/scrcpy/scrcpy-server"
+            } else {
+                "android-tools/macos-aarch64/scrcpy/scrcpy-server"
+            }),
+            "scrcpy" => Some(if cfg!(target_arch = "x86_64") {
+                "android-tools/macos-x86_64/scrcpy/scrcpy"
+            } else {
+                "android-tools/macos-aarch64/scrcpy/scrcpy"
+            }),
+            _ => None,
+        };
+        if let Some(relative) = relative {
+            for resources_dir in bundled_resources_dirs() {
+                paths.push(resources_dir.join(relative));
+            }
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let relative = match name {
+            "adb" => Some("android-tools/windows-x86_64/platform-tools/adb.exe"),
+            "scrcpy" => Some("android-tools/windows-x86_64/scrcpy/scrcpy.exe"),
+            "scrcpy-server" => Some("android-tools/windows-x86_64/scrcpy/scrcpy-server"),
             _ => None,
         };
         if let Some(relative) = relative {

@@ -354,8 +354,8 @@ function MirrorPage({ platform, status, devices, busy, address, setAddress, port
       <span className={`mirror-status ${running ? "on" : ""}`}><i/>{running ? "投屏中" : "未启动"}</span>
     </section>
 
-    {status && !ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>投屏组件不可用</strong><p>{isMac ? "安装包会内置 adb 与 scrcpy。如果这里仍提示不可用，请重新安装最新版 LanClip。" : "请安装包含 scrcpy 的最新版 LanClip，或把官方 scrcpy 加入系统 PATH 后重启。"}</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看 scrcpy 官方说明</a></div></section>}
-    {ready && !status?.adbAvailable && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>ADB 不可用</strong><p>{isMac ? "安装包会内置 Android platform-tools。如果这里仍提示不可用，请重新安装最新版 LanClip。" : "请安装包含 adb 的最新版 LanClip，或把 Android platform-tools 加入系统 PATH 后重启。"}</p><a href="https://developer.android.com/tools/adb" target="_blank" rel="noreferrer">查看 ADB 官方说明</a></div></section>}
+    {status && !ready && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>投屏组件不可用</strong><p>{isMac ? "正式安装包会内置 adb 与 scrcpy；开发运行时也会优先读取项目资源。如果这里仍提示不可用，请重新安装最新版 LanClip，或把官方工具加入 PATH。" : "正式 Windows x64 安装包会内置 adb 与 scrcpy；开发运行时也会优先读取项目资源。如果这里仍提示不可用，请重新安装最新版 LanClip，或把官方工具加入 PATH。"}</p><a href="https://github.com/Genymobile/scrcpy" target="_blank" rel="noreferrer">查看 scrcpy 官方说明</a></div></section>}
+    {ready && !status?.adbAvailable && <section className="info-banner mirror-warning"><span><Icon name="phone"/></span><div><strong>ADB 不可用</strong><p>{isMac ? "正式安装包会内置 Android platform-tools；开发运行时也会优先读取项目资源。如果这里仍提示不可用，请重新安装最新版 LanClip，或把官方工具加入 PATH。" : "正式 Windows x64 安装包会内置 Android platform-tools；开发运行时也会优先读取项目资源。如果这里仍提示不可用，请重新安装最新版 LanClip，或把官方工具加入 PATH。"}</p><a href="https://developer.android.com/tools/adb" target="_blank" rel="noreferrer">查看 ADB 官方说明</a></div></section>}
 
     <section className="settings-card mirror-devices-card">
       <div className="section-heading"><div><h2>已发现的安卓设备</h2><p>USB 调试授权后会自动出现；首次成功投屏后会记住这台设备</p></div><div className="section-actions"><button className="secondary-button" onClick={() => setGuideOpen(true)}>查看引导</button><button className="secondary-button" onClick={onRefreshDevices} disabled={busy === "mirror-start"}>刷新设备</button></div></div>
@@ -405,7 +405,7 @@ function MirrorGuide({ onClose }: { onClose: () => void }) {
       <button className="modal-close" onClick={onClose} aria-label="关闭引导"><Icon name="close" size={18}/></button>
       <div className="modal-icon"><Icon name="phone" size={26}/></div>
       <h2 id="mirror-guide-title">首次安卓投屏</h2>
-      <p>LanClip 已内置 adb 和 scrcpy。大多数同事只需要插上 USB、允许调试，然后点击开始投屏。</p>
+      <p>正式安装包已内置 adb 和 scrcpy。大多数同事只需要插上 USB、允许调试，然后点击开始投屏。</p>
       <div className="guide-step-list">
         <div><b>1</b><span><strong>打开 USB 调试</strong><small>手机进入开发者选项，开启 USB 调试。</small></span></div>
         <div><b>2</b><span><strong>连接并授权</strong><small>用 USB 连接电脑，手机弹出授权时选择允许。</small></span></div>

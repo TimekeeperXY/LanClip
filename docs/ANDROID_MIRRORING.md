@@ -19,13 +19,19 @@
 
 当前版本还没有把安卓设备接入 LanClip 的 6 位配对码体系。原因是没有安卓端 App 时，手机无法运行 LanClip 的发现、配对和身份协议；本阶段使用 ADB 的设备授权作为连接前提。
 
-## 安装 scrcpy 与 ADB
+## 投屏工具来源
 
-请从 [Genymobile/scrcpy 官方仓库](https://github.com/Genymobile/scrcpy) 获取适合 Windows 或 macOS 的版本，并确保 `scrcpy`、`adb` 可以在终端中直接运行。
+正式安装包已经内置官方 `scrcpy 4.1` 和 Android Platform-Tools 37.0.1：
+
+- Windows x64：内置 Windows 64 位工具。
+- Apple Silicon Mac：内置 macOS arm64 投屏工具。
+- Intel Mac：内置 macOS x86_64 投屏工具；当前仍建议完成真机验证后再广泛分发。
+
+因此普通用户不需要额外安装 `adb` 或 `scrcpy`。开发运行、旧版本安装包或资源被安全软件隔离时，LanClip 仍会回退到系统 PATH 和常见安装目录。
 
 ### macOS
 
-推荐使用 Homebrew：
+如果是在源码开发模式运行，推荐使用 Homebrew：
 
 ```bash
 brew install scrcpy
@@ -38,7 +44,7 @@ Apple Silicon Mac 使用 aarch64 版本，Intel Mac 使用 x86_64 版本。若�
 
 ### Windows
 
-可使用官方 Windows 压缩包，或通过 WinGet 安装 scrcpy；确保 `scrcpy.exe` 和 `adb.exe` 在 PATH 中。
+如果是在源码开发模式运行，或使用不包含内置工具的旧版安装包，可使用官方 Windows 压缩包或 WinGet 安装 scrcpy，并确保 `scrcpy.exe` 和 `adb.exe` 在 PATH 中。
 
 验证安装：
 
@@ -47,7 +53,7 @@ scrcpy --version
 adb version
 ```
 
-如果 LanClip 显示“尚未找到 scrcpy”或“尚未找到 adb”，请把对应目录加入系统 `PATH`，然后完全退出并重新打开 LanClip。
+如果正式版 LanClip 显示“投屏组件不可用”或“ADB 不可用”，请先重新安装最新版；如果仍无法识别，再把对应目录加入系统 `PATH`，然后完全退出并重新打开 LanClip。
 
 ## USB 投屏
 
@@ -101,11 +107,10 @@ LanClip 通过 scrcpy 的 `--max-fps` 设置视频采集帧率上限。165Hz 显
 
 ## macOS 验收流程
 
-1. 在 Mac 上安装 scrcpy 与 ADB，并执行 `scrcpy --version`、`adb version`。
+1. 启动正式版 LanClip，进入“安卓投屏”，确认显示“ADB 可用”。
 2. 用 USB 连接安卓手机，在手机上允许 USB 调试授权。
-3. 启动 LanClip，进入“安卓投屏”，确认显示“ADB 可用”。
-4. 先使用 USB 投屏验证画面、鼠标键盘、电脑音频和息屏开关。
-5. 再完成 Android 11+ 无线调试配对，验证设备记忆和同一局域网自动发现。
+3. 先使用 USB 投屏验证画面、鼠标键盘、电脑音频和息屏开关。
+4. 再完成 Android 11+ 无线调试配对，验证设备记忆和同一局域网自动发现。
 
 ## 安全边界
 

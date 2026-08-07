@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "targets": ["dmg"],
+    "resources": [
+      "resources/android-tools/macos-aarch64",
+      "resources/android-tools/macos-x86_64"
+    ]
+  }
+}
