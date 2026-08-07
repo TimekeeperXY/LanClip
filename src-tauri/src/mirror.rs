@@ -4,6 +4,9 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MirrorStatus {
@@ -48,6 +51,14 @@ fn command_name(name: &str) -> &'static str {
     }
 }
 
+/// Prevent console-subsystem helpers such as adb and scrcpy from opening a
+/// transient terminal when LanClip is running as a GUI application on Windows.
+/// The flag does not hide scrcpy's own SDL mirror window.
+fn prepare_child_command(command: &mut Command) {
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+}
+
 fn resolve_tool(name: &str) -> Option<String> {
     if let Some(path) = bundled_tool_paths(name)
         .into_iter()
@@ -57,7 +68,9 @@ fn resolve_tool(name: &str) -> Option<String> {
         return Some(path);
     }
 
-    if let Ok(output) = Command::new(command_name(name)).arg(name).output() {
+    let mut lookup = Command::new(command_name(name));
+    prepare_child_command(&mut lookup);
+    if let Ok(output) = lookup.arg(name).output() {
         if output.status.success() {
             if let Some(path) = String::from_utf8_lossy(&output.stdout)
                 .lines()
@@ -180,6 +193,7 @@ fn common_tool_paths(name: &str) -> Vec<PathBuf> {
 
 fn tool_version(path: &str) -> Option<String> {
     let mut command = Command::new(path);
+    prepare_child_command(&mut command);
     add_android_tool_env(&mut command);
     let output = command.arg("--version").output().ok()?;
     let text = if output.stdout.is_empty() {
@@ -201,6 +215,7 @@ fn adb_path() -> Result<String, String> {
 
 fn run_adb(path: &str, args: &[String]) -> Result<std::process::Output, String> {
     let mut command = Command::new(path);
+    prepare_child_command(&mut command);
     add_android_tool_env(&mut command);
     command
         .args(args)
@@ -493,6 +508,7 @@ fn start_process(
     }
 
     let mut command = Command::new(path);
+    prepare_child_command(&mut command);
     add_android_tool_env(&mut command);
     let child = command
         .args(args)
