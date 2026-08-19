@@ -13,6 +13,8 @@ pub struct PersistedConfig {
     pub device_name: String,
     pub sync_enabled: bool,
     pub peers: HashMap<String, TrustedPeer>,
+    #[serde(default)]
+    pub mirror_devices: HashMap<String, TrustedMirrorDevice>,
 }
 
 impl PersistedConfig {
@@ -25,8 +27,21 @@ impl PersistedConfig {
             device_name: computer,
             sync_enabled: true,
             peers: HashMap::new(),
+            mirror_devices: HashMap::new(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrustedMirrorDevice {
+    pub device_id: String,
+    pub device_name: String,
+    #[serde(default)]
+    pub last_address: Option<String>,
+    #[serde(default)]
+    pub last_port: Option<u16>,
+    pub last_seen: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -179,6 +194,19 @@ pub struct SystemStatus {
     pub firewall_ready: bool,
     pub secure_storage: bool,
     pub installed_mode: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MirrorDeviceView {
+    pub device_id: String,
+    pub device_name: String,
+    pub online: bool,
+    pub address: Option<String>,
+    pub port: Option<u16>,
+    pub transport: String,
+    pub bound: bool,
+    pub last_seen: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]

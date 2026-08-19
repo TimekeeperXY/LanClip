@@ -77,6 +77,26 @@
 - 文件传输与大图流式传输
 - 二维码配对与设备指纹核验
 
+## 第五阶段：安卓投屏（独立实验分支）
+
+状态：`feature/android-mirroring-scrcpy` 开发中，Windows / macOS 桌面端均已接入，暂不开发原生安卓配套 App。
+
+- [x] 桌面端增加安卓投屏入口
+- [x] 检测本机 `scrcpy` / `adb` 安装状态
+- [x] 支持 USB 授权设备投屏
+- [x] 支持填写 IP 和端口尝试局域网投屏
+- [x] 支持仅查看 / 允许鼠标键盘控制
+- [x] 支持 Windows / macOS 的 scrcpy 与 ADB 路径检测
+- [x] 支持音频转发、帧率选择和投屏后关闭安卓显示屏
+- [x] 支持 ADB 设备记忆与 mDNS 自动发现
+- [ ] 真机验证 Windows + Android USB 投屏
+- [ ] 真机验证 Windows + Android 无线投屏
+- [ ] 真机验证 macOS + Android 投屏
+- [ ] 记录并展示 scrcpy/ADB 失败原因与诊断日志
+- [ ] 评估将已授权 ADB 设备登记为 LanClip 可信设备
+
+当前边界：没有安卓端 App 时，安卓设备不能参与 LanClip 的 6 位配对码和 UDP 发现协议；本阶段以 ADB 明确授权为安全前提，不承诺免开发者选项、免系统授权的投屏体验。
+
 ## 当前明确边界
 
 - MVP 仅同步纯文本和位图，不同步 HTML、富文本、文件及文件夹。

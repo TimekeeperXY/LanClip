@@ -34,6 +34,7 @@ LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的�
 - 关闭主窗口时继续驻留系统托盘，只有托盘菜单“退出 LanClip”才结束同步服务
 - 设置页可一键开启或关闭开机自启，登录系统后默认静默驻留托盘
 - macOS 关闭窗口后继续驻留菜单栏，开机自启后默认后台运行
+- `feature/android-mirroring-scrcpy` 分支提供 Windows / macOS 桌面端安卓投屏入口；正式 Windows x64、Apple Silicon Mac 和 Intel Mac 安装包均内置 scrcpy 与 adb，无需额外安装
 
 ## 跨平台验证状态
 
@@ -41,11 +42,13 @@ LanClip 是一个 Windows 优先、已跑通 Windows ↔ macOS 双向同步的�
 
 已完成 macOS 菜单栏常驻与登录启动真机验证：关闭窗口后继续同步，菜单栏可重新打开或退出，重启后可后台自启。
 
-仍在推进：Intel Mac 补充验证、macOS 打包签名与公证、Mac-Mac 交叉测试。
+仍在推进：Intel Mac 真机补充验证、macOS 打包签名与公证、Mac-Mac 交叉测试。
+
+安卓投屏功能的安装与使用请见 [docs/ANDROID_MIRRORING.md](docs/ANDROID_MIRRORING.md)。当前不开发安卓配套 App，使用 USB/ADB 授权作为连接前提。
 
 ## 本地开发
 
-需要 Node.js、Rust stable、Windows WebView2 与 Visual Studio C++ Build Tools。
+需要 Node.js 与 Rust stable；Windows 还需要 WebView2 和 Visual Studio C++ Build Tools，macOS 还需要 Xcode Command Line Tools。
 
 ```powershell
 npm install
@@ -111,7 +114,9 @@ src-tauri/src/crypto.rs     加密、密钥和内容指纹
 src-tauri/src/network.rs    发现、配对和同步协议
 src-tauri/src/state.rs      运行状态和配置持久化
 src-tauri/src/model.rs      协议与界面数据模型
+src-tauri/src/mirror.rs     scrcpy 投屏进程检测与会话管理
 docs/DEVELOPMENT_PLAN.md    分阶段开发与验收计划
+docs/ANDROID_MIRRORING.md  安卓投屏实验版说明
 website/                    GitHub Pages 产品网站
 ```
 

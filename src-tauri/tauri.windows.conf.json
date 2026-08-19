@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "targets": ["nsis"],
+    "resources": [
+      "resources/android-tools/windows-x86_64"
+    ]
+  }
+}
